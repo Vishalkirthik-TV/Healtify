@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { View, Text, TouchableOpacity } from "react-native";
 import { useRouter } from "expo-router";
 import { Screen } from "../../components/Screen";
@@ -7,9 +8,11 @@ import { Card } from "../../components/Card";
 import { Button } from "../../components/Button";
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { Camera, History, AlertTriangle, ChevronRight, MessageCircle } from "lucide-react-native";
+import { EmergencyModal } from "../../components/EmergencyModal";
 
 export default function Home() {
     const router = useRouter();
+    const [emergencyModalVisible, setEmergencyModalVisible] = useState(false);
 
     return (
         <Screen safeArea scrollable className="px-6 py-6" contentContainerStyle={{ paddingBottom: 100 }}>
@@ -18,10 +21,24 @@ export default function Home() {
                     <Text className="text-white text-xl font-bold">Hello!</Text>
                     <Text className="text-slate-400">How can I help you today?</Text>
                 </View>
-                <TouchableOpacity className="bg-slate-800 p-2 rounded-full">
-                    <Ionicons name="notifications-outline" size={24} color="white" />
-                </TouchableOpacity>
+                <View className="flex-row gap-3">
+                    <TouchableOpacity
+                        onPress={() => setEmergencyModalVisible(true)}
+                        className="bg-red-500/20 border border-red-500/50 p-2 rounded-full animate-pulse"
+                    >
+                        <Ionicons name="warning" size={24} color="#ef4444" />
+                    </TouchableOpacity>
+                    <TouchableOpacity className="bg-slate-800 p-2 rounded-full">
+                        <Ionicons name="notifications-outline" size={24} color="white" />
+                    </TouchableOpacity>
+                </View>
             </View>
+
+            {/* Emergency Modal */}
+            <EmergencyModal
+                visible={emergencyModalVisible}
+                onClose={() => setEmergencyModalVisible(false)}
+            />
 
             {/* Primary Action - Talk to AI */}
             <Card className="bg-teal-900/40 border-teal-500/30 mb-6 overflow-hidden" >

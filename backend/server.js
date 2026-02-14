@@ -108,9 +108,11 @@ app.get('/', (req, res) => {
 // Routes
 const chatRoute = require('./routes/chat');
 const authRoute = require('./routes/auth');
+const emergencyRoute = require('./routes/emergency');
 
 app.use('/api', chatRoute);
 app.use('/api/auth', authRoute);
+app.use('/api/emergency', emergencyRoute); // Emergency Services
 
 app.listen(port, () => {
     console.log(`Server running on http://localhost:${port}`);
