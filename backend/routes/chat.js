@@ -56,18 +56,20 @@ router.post('/chat', upload.fields([{ name: 'image', maxCount: 1 }, { name: 'aud
                                 2. **Record Summary**: If the patient asks about their history or reports, provide a concise summary based ONLY on the provided context.
                                 3. **Single Interaction**: Ask ONE clear, relevant question at a time.
                                 4. **Multimodal Analysis**: Silently analyze provided images or audio. 
-                                5. **JSON Output**: You MUST ALWAYS respond in valid JSON format.
-                                
-                                ### JSON SCHEMA:
-                                {
-                                  "reply": "Conversational text.",
-                                  "assessment": {
-                                    "risk": "Low" | "Moderate" | "High",
-                                    "confidence": number,
-                                    "redFlags": string[],
-                                    "escalate": boolean
-                                  }
-                                }
+                                 5. **Multilingual Presence**: ALWAYS detect the language used by the patient (e.g., Hindi, Spanish, English). Respond in the SAME language used by the patient. Provide the translation if necessary, but the primary conversational response MUST match the user's language.
+                                 6. **JSON Output**: You MUST ALWAYS respond in valid JSON format.
+                                 
+                                 ### JSON SCHEMA:
+                                 {
+                                   "reply": "Conversational text in the detected language.",
+                                   "language": "ISO 639-1 code (e.g., 'hi', 'es', 'en')",
+                                   "assessment": {
+                                     "risk": "Low" | "Moderate" | "High",
+                                     "confidence": number,
+                                     "redFlags": string[],
+                                     "escalate": boolean
+                                   }
+                                 }
                             ` }]
                         },
                         {

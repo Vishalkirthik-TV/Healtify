@@ -58,10 +58,11 @@ export default function AvatarTriage() {
         speak("Okay, point the camera at the new area.");
     };
 
-    const speak = (text: string) => {
+    const speak = (text: string, language: string = 'en') => {
         setAiStatus("Speaking...");
         setIsSpeaking(true);
         Speech.speak(text, {
+            language: language,
             onDone: () => {
                 setIsSpeaking(false);
                 setAiStatus("Ready"); // Changed from "Listening..." to "Ready" as it's not always listening after speaking
@@ -255,12 +256,11 @@ export default function AvatarTriage() {
                     setRiskAssessment(res.data.assessment);
                 }
 
-                // Don't speak if it's a background check that found nothing
                 if (isBackground && res.data.reply.trim().toLowerCase().includes("nothing")) {
                     return;
                 }
 
-                speak(res.data.reply);
+                speak(res.data.reply, res.data.language || 'en');
             }
 
         } catch (error) {
