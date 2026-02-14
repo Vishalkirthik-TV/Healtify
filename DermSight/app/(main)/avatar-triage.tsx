@@ -3,6 +3,7 @@ import { View, Text, TouchableOpacity, StyleSheet, Dimensions, Image, ScrollView
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { Screen } from '../../components/Screen';
 import AvatarView from '../components/AvatarView';
+import BodySelectorModal from '../components/BodySelectorModal';
 import { useAuth } from '../context/AuthContext';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
@@ -37,6 +38,7 @@ export default function AvatarTriage() {
     const [captionText, setCaptionText] = useState<string | null>(null);
     const [chatHistory, setChatHistory] = useState<{ role: string; text: string; image?: string }[]>([]);
     const [conditionSuggestions, setConditionSuggestions] = useState<{ name: string; imageUrl: string }[] | null>(null);
+    const [showBodySelector, setShowBodySelector] = useState(false);
 
     useEffect(() => {
         // Start background analysis loop ONLY if image is not locked
@@ -307,6 +309,12 @@ export default function AvatarTriage() {
         await sendToBackend(`I think my condition looks most like: ${condition.name}`, null, undefined, false);
     };
 
+    const handleBodyRegionSelect = async (region: string) => {
+        setShowBodySelector(false);
+        speak(`Got it, you selected ${region}. Let me focus on that area.`);
+        await sendToBackend(`The affected area is on my ${region}. Please focus your analysis on this body region.`, null, undefined, false);
+    };
+
     if (!permission?.granted) {
         return <View />;
     }
@@ -508,6 +516,14 @@ export default function AvatarTriage() {
                 </TouchableOpacity>
 
                 <View className="items-center">
+                    {/* Body Selector Button (above mic) */}
+                    <TouchableOpacity
+                        onPress={() => setShowBodySelector(true)}
+                        className="mb-2 bg-blue-600/20 border border-blue-500/40 p-2 rounded-full"
+                        activeOpacity={0.7}
+                    >
+                        <Ionicons name="body" size={18} color="#60a5fa" />
+                    </TouchableOpacity>
                     <TouchableOpacity
                         onPressIn={startRecording}
                         onPressOut={stopRecording}
@@ -578,6 +594,13 @@ export default function AvatarTriage() {
                     </View>
                 )
             }
+
+            {/* Body Selector Modal */}
+            <BodySelectorModal
+                visible={showBodySelector}
+                onClose={() => setShowBodySelector(false)}
+                onConfirm={handleBodyRegionSelect}
+            />
 
         </Screen >
     );
