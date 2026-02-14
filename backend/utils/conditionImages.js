@@ -1,89 +1,88 @@
 const axios = require('axios');
 
-// In-memory cache to avoid repeat API calls
 const imageCache = {};
 
+const HEADERS = {
+    'User-Agent': 'DermSightApp/1.0 (https://dermsight.app; contact@dermsight.app)',
+    'Accept': 'application/json'
+};
+
 /**
- * Fetch a representative dermatology image for a given skin condition
- * Uses DuckDuckGo instant answer API + Wikimedia Commons as fallback
+ * Clean condition names for better Wikipedia matching.
+ * "Eczema (Atopic Dermatitis)" → "Eczema"
+ * "Urticaria (Hives)" → "Urticaria"
  */
-async function fetchConditionImage(conditionName) {
-    // Check cache first
-    if (imageCache[conditionName.toLowerCase()]) {
-        return imageCache[conditionName.toLowerCase()];
-    }
-
-    try {
-        // Strategy 1: Wikimedia Commons API (free, no key needed)
-        const wikiUrl = `https://commons.wikimedia.org/w/api.php?action=query&generator=search&gsrnamespace=6&gsrsearch=dermatology+${encodeURIComponent(conditionName)}&prop=imageinfo&iiprop=url|extmetadata&iiurlwidth=300&format=json&origin=*`;
-
-        const res = await axios.get(wikiUrl, { timeout: 5000 });
-        const pages = res.data?.query?.pages;
-
-        if (pages) {
-            const pageList = Object.values(pages);
-            // Find the first page with a valid image URL (prefer thumbnail)
-            for (const page of pageList) {
-                const info = page.imageinfo?.[0];
-                if (info?.thumburl) {
-                    const result = {
-                        name: conditionName,
-                        imageUrl: info.thumburl,
-                        source: 'Wikimedia Commons'
-                    };
-                    imageCache[conditionName.toLowerCase()] = result;
-                    return result;
-                }
-            }
-        }
-    } catch (err) {
-        console.error(`[ConditionImages] Wikimedia failed for "${conditionName}":`, err.message);
-    }
-
-    try {
-        // Strategy 2: Wikipedia API for article thumbnail
-        const wikiArticle = `https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(conditionName)}`;
-        const res2 = await axios.get(wikiArticle, { timeout: 5000 });
-
-        if (res2.data?.thumbnail?.source) {
-            const result = {
-                name: conditionName,
-                imageUrl: res2.data.thumbnail.source,
-                source: 'Wikipedia'
-            };
-            imageCache[conditionName.toLowerCase()] = result;
-            return result;
-        }
-    } catch (err) {
-        console.error(`[ConditionImages] Wikipedia fallback failed for "${conditionName}":`, err.message);
-    }
-
-    // Strategy 3: Return a placeholder with the name
-    return {
-        name: conditionName,
-        imageUrl: `https://placehold.co/300x300/1e293b/white?text=${encodeURIComponent(conditionName)}`,
-        source: 'placeholder'
-    };
+function cleanConditionName(name) {
+    return name.replace(/\s*\([^)]*\)\s*/g, '').trim();
 }
 
 /**
- * Fetch images for multiple conditions in parallel
- * @param {string[]} conditions - Array of condition names
- * @returns {Promise<{name: string, imageUrl: string}[]>}
+ * Fetch a clinical image for a skin condition using Wikipedia's pageimages API.
+ * This returns the article's MAIN representative image (usually a clinical photo),
+ * not a random search result.
  */
-async function fetchConditionImages(conditions) {
-    if (!conditions || !Array.isArray(conditions) || conditions.length === 0) {
-        return [];
+async function fetchConditionImage(conditionName, backendBase = '') {
+    const key = conditionName.toLowerCase().trim();
+    if (imageCache[key]) return imageCache[key];
+
+    const cleanName = cleanConditionName(conditionName);
+    const slug = cleanName.replace(/ /g, '_');
+
+    // Strategy 1: Wikipedia pageimages API — returns article's primary image
+    try {
+        const url = `https://en.wikipedia.org/w/api.php?action=query&titles=${encodeURIComponent(slug)}&prop=pageimages&format=json&piprop=thumbnail&pithumbsize=300&origin=*`;
+        const res = await axios.get(url, { timeout: 3000, headers: HEADERS });
+        const pages = Object.values(res.data?.query?.pages || {});
+        const thumbnail = pages[0]?.thumbnail?.source;
+
+        if (thumbnail) {
+            const proxyUrl = `${backendBase}/api/proxy-image?url=${encodeURIComponent(thumbnail)}`;
+            const result = { name: conditionName, imageUrl: proxyUrl, source: 'wikipedia-pageimage' };
+            imageCache[key] = result;
+            console.log(`[ConditionImages] ✅ Wikipedia pageimage for "${cleanName}"`);
+            return result;
+        }
+    } catch (err) {
+        console.warn(`[ConditionImages] Wikipedia pageimage failed for "${cleanName}": ${err.message}`);
     }
 
-    // Limit to 4 conditions max
-    const limited = conditions.slice(0, 4);
+    // Strategy 2: Try with the full original name (some articles use the long form)
+    if (cleanName !== conditionName) {
+        try {
+            const fullSlug = conditionName.replace(/ /g, '_');
+            const url = `https://en.wikipedia.org/w/api.php?action=query&titles=${encodeURIComponent(fullSlug)}&prop=pageimages&format=json&piprop=thumbnail&pithumbsize=300&origin=*`;
+            const res = await axios.get(url, { timeout: 3000, headers: HEADERS });
+            const pages = Object.values(res.data?.query?.pages || {});
+            const thumbnail = pages[0]?.thumbnail?.source;
+
+            if (thumbnail) {
+                const proxyUrl = `${backendBase}/api/proxy-image?url=${encodeURIComponent(thumbnail)}`;
+                const result = { name: conditionName, imageUrl: proxyUrl, source: 'wikipedia-fullname' };
+                imageCache[key] = result;
+                console.log(`[ConditionImages] ✅ Wikipedia pageimage (full) for "${conditionName}"`);
+                return result;
+            }
+        } catch (err) {
+            // Silent — will fall through to placeholder
+        }
+    }
+
+    // Strategy 3: Placeholder with condition name
+    const placeholder = `https://placehold.co/300x300/1a1a2e/22d3ee?text=${encodeURIComponent(cleanName)}&font=roboto`;
+    const result = { name: conditionName, imageUrl: placeholder, source: 'placeholder' };
+    imageCache[key] = result;
+    console.log(`[ConditionImages] ⚠️ Using placeholder for "${conditionName}"`);
+    return result;
+}
+
+/**
+ * Fetch images for multiple conditions in parallel (max 3)
+ */
+async function fetchConditionImages(conditions, backendBase = '') {
+    if (!conditions || !Array.isArray(conditions) || conditions.length === 0) return [];
+    const limited = conditions.slice(0, 3); // Limit to 3
     console.log(`[ConditionImages] Fetching images for: ${limited.join(', ')}`);
-
-    const results = await Promise.all(
-        limited.map(c => fetchConditionImage(c))
-    );
-
+    const results = await Promise.all(limited.map(c => fetchConditionImage(c, backendBase)));
     console.log(`[ConditionImages] Got ${results.length} results`);
     return results;
 }

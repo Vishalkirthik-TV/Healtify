@@ -74,7 +74,7 @@ router.post('/chat', upload.fields([{ name: 'image', maxCount: 1 }, { name: 'aud
                                  }
                                  
                                  ### CONDITION SUGGESTIONS RULE:
-                                 When you first analyze a skin image AND the diagnosis is not 100% certain, populate **suggestedConditions** with 3-4 possible dermatological condition names (in English, medical terms). Only include this field when an image is present and you can identify possible conditions. Do NOT include it for follow-up questions or when no image is provided.
+                                 When you first analyze a skin image AND the diagnosis is not 100% certain, populate **suggestedConditions** with exactly 3 possible dermatological condition names. Use SHORT, SIMPLE names that match Wikipedia article titles (e.g. "Eczema", "Psoriasis", "Contact dermatitis"). Do NOT use parenthetical descriptions like "Eczema (Atopic Dermatitis)". Only include this field when an image is present and you can identify possible conditions. Do NOT include it for follow-up text-only questions.
                             ` }]
                         },
                         {
@@ -173,7 +173,9 @@ router.post('/chat', upload.fields([{ name: 'image', maxCount: 1 }, { name: 'aud
             if (aiResponse.suggestedConditions && Array.isArray(aiResponse.suggestedConditions) && aiResponse.suggestedConditions.length > 0) {
                 console.log(`[Chat] Gemini suggested conditions: ${aiResponse.suggestedConditions.join(', ')}`);
                 try {
-                    conditionSuggestions = await fetchConditionImages(aiResponse.suggestedConditions);
+                    // Build backend base URL from request for proxy image URLs
+                    const backendBase = `${req.protocol}://${req.get('host')}`;
+                    conditionSuggestions = await fetchConditionImages(aiResponse.suggestedConditions, backendBase);
                     console.log(`[Chat] Fetched ${conditionSuggestions.length} condition images`);
                 } catch (imgErr) {
                     console.error('[Chat] Error fetching condition images:', imgErr.message);
