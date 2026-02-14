@@ -21,6 +21,9 @@ app.use(express.json());
 // Configure Multer
 const upload = multer({ dest: 'uploads/' });
 
+// Serve uploads statically for sharing
+app.use('/uploads', express.static('uploads'));
+
 // Initialize Gemini
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 

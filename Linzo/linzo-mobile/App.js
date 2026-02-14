@@ -4,7 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { WebView } from 'react-native-webview';
 
 // Cloudflare Tunnel URL
-const LINZO_MEET_URL = 'https://excel-oval-liberal-bloomberg.trycloudflare.com';
+const LINZO_MEET_URL = 'https://camcorder-submit-pensions-mary.trycloudflare.com';
 
 export default function App() {
   return (

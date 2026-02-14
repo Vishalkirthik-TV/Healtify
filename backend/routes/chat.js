@@ -154,9 +154,19 @@ router.post('/chat', upload.fields([{ name: 'image', maxCount: 1 }, { name: 'aud
             }
 
             const aiResponse = JSON.parse(cleanedText);
+            const risk = aiResponse.assessment?.risk;
+            res.locals.risk = risk; // Persist for cleanup logic
+
+            // Generate public URL if image was uploaded
+            let publicImageUrl = null;
+            if (imageFile) {
+                publicImageUrl = `/uploads/${imageFile.filename}`;
+            }
+
             res.json({
                 reply: aiResponse.reply || "I'm processing that.",
                 assessment: aiResponse.assessment,
+                publicImageUrl: publicImageUrl,
                 lastActive: Date.now()
             });
         } catch (geminiError) {
@@ -182,6 +192,12 @@ router.post('/chat', upload.fields([{ name: 'image', maxCount: 1 }, { name: 'aud
         // Cleanup uploaded files
         if (req.files) {
             Object.values(req.files).flat().forEach(file => {
+                // Keep image if risk is High or Moderate for teleconsult sharing
+                const isHighRisk = res.locals?.risk === 'High' || res.locals?.risk === 'Moderate';
+                if (file.fieldname === 'image' && isHighRisk) {
+                    console.log(`[Persistence] Keeping high-risk image: ${file.path}`);
+                    return;
+                }
                 if (fs.existsSync(file.path)) fs.unlinkSync(file.path);
             });
         }

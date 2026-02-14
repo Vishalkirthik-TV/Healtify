@@ -21,7 +21,7 @@ export default defineConfig({
     global: 'globalThis',
   },
   server: {
-    allowedHosts: ['localhost', '127.0.0.1', "excel-oval-liberal-bloomberg.trycloudflare.com", "plugin-exams-sleep-insert.trycloudflare.com"],
+    allowedHosts: ['localhost', '127.0.0.1', "camcorder-submit-pensions-mary.trycloudflare.com", "craft-finder-voters-compilation.trycloudflare.com"],
     headers: {
       // Relaxed COOP/COEP to allow CDN resources (like ONNX WASM files) to load
       // 'Cross-Origin-Embedder-Policy': 'require-corp',  // Commented out to allow CDN WASM loading

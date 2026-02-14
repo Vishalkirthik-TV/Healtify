@@ -28,7 +28,7 @@ export default function App() {
           <Route path="/register" element={<Register />} />
           <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
           <Route path="/room/:roomId" element={<Navigate to="/dashboard" replace />} />
-          <Route path="/integrated-room/:roomId" element={<ProtectedRoute><IntegratedRoom /></ProtectedRoute>} />
+          <Route path="/integrated-room/:roomId" element={<IntegratedRoom />} />
           <Route path="/multicall" element={<ProtectedRoute><MultiCallLobby /></ProtectedRoute>} />
           <Route path="/multicall/room/:roomId" element={<ProtectedRoute><MultiCallRoom /></ProtectedRoute>} />
           <Route path="/summary-call" element={<ProtectedRoute><SummaryCallLobby /></ProtectedRoute>} />

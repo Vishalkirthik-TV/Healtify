@@ -33,6 +33,7 @@ export default function AvatarTriage() {
     } | null>(null);
     const [isCameraOn, setIsCameraOn] = useState(true);
     const isCameraOnRef = useRef(true);
+    const [publicImageUrl, setPublicImageUrl] = useState<string | null>(null);
 
     useEffect(() => {
         // Start background analysis loop ONLY if image is not locked
@@ -254,6 +255,9 @@ export default function AvatarTriage() {
                 // Store assessment if provided
                 if (res.data.assessment) {
                     setRiskAssessment(res.data.assessment);
+                    if (res.data.publicImageUrl) {
+                        setPublicImageUrl(res.data.publicImageUrl);
+                    }
                 }
 
                 if (isBackground && res.data.reply.trim().toLowerCase().includes("nothing")) {
@@ -364,25 +368,59 @@ export default function AvatarTriage() {
                         )}
 
                         {/* Escalation Buttons */}
-                        {(riskAssessment.escalate || riskAssessment.risk === 'High') && (
-                            <View className="flex-row space-x-3 pt-2">
+                        <View className="flex-col space-y-3 pt-2">
+                            {riskAssessment.risk === 'High' ? (
                                 <TouchableOpacity
-                                    className="flex-1 bg-teal-600 py-3 rounded-2xl items-center shadow-sm"
-                                    onPress={() => speak("Connecting you to a dermatologist for a teleconsult now.")}
+                                    className="bg-red-600 py-4 rounded-xl flex-row items-center justify-center"
+                                    onPress={() => {
+                                        router.push({
+                                            pathname: '/(main)/integrated-meeting',
+                                            params: {
+                                                roomId: sessionId,
+                                                summary: riskAssessment.redFlags.join(', '),
+                                                imageURL: publicImageUrl ? `${API_URL}${publicImageUrl}` : ''
+                                            }
+                                        });
+                                    }}
                                 >
-                                    <Text className="text-white font-bold text-sm">Book Teleconsult</Text>
+                                    <Ionicons name="videocam" size={24} color="white" className="mr-2" />
+                                    <Text className="text-white font-bold text-lg">Book Teleconsult (Urgent)</Text>
                                 </TouchableOpacity>
+                            ) : (
+                                <TouchableOpacity
+                                    className="bg-teal-600 py-4 rounded-xl flex-row items-center justify-center"
+                                    onPress={() => {
+                                        router.push({
+                                            pathname: '/(main)/integrated-meeting',
+                                            params: {
+                                                roomId: sessionId,
+                                                summary: `General consultation for ${riskAssessment.risk} risk case.`,
+                                                imageURL: publicImageUrl ? `${API_URL}${publicImageUrl}` : ''
+                                            }
+                                        });
+                                    }}
+                                >
+                                    <Ionicons name="videocam" size={24} color="white" className="mr-2" />
+                                    <Text className="text-white font-bold text-lg">Consult Specialist</Text>
+                                </TouchableOpacity>
+                            )}
 
-                                {riskAssessment.risk === 'High' && (
-                                    <TouchableOpacity
-                                        className="flex-1 bg-red-600 py-3 rounded-2xl items-center shadow-lg"
-                                        onPress={() => speak("Warning: Please contact emergency services immediately if you feel systemically unwell.")}
-                                    >
-                                        <Text className="text-white font-bold text-sm">Emergency Alert</Text>
-                                    </TouchableOpacity>
-                                )}
-                            </View>
-                        )}
+                            <TouchableOpacity
+                                className="bg-white/10 py-4 rounded-xl items-center"
+                                onPress={resetLockedImage}
+                            >
+                                <Text className="text-white font-bold text-lg">Test New Area</Text>
+                            </TouchableOpacity>
+
+                            {riskAssessment.risk === 'High' && (
+                                <TouchableOpacity
+                                    className="bg-red-600/20 border border-red-500/50 py-3 rounded-2xl items-center shadow-lg"
+                                    onPress={() => speak("Warning: Please contact emergency services immediately if you feel systemically unwell.")}
+                                >
+                                    <Text className="text-red-400 font-bold text-sm">Emergency Alert</Text>
+                                </TouchableOpacity>
+                            )}
+                        </View>
                     </View>
                 </View>
             )}
@@ -423,8 +461,21 @@ export default function AvatarTriage() {
                     </Text>
                 </View>
 
-                {/* Placeholder for symmetry or future secondary button */}
-                <View style={{ width: 60 }} />
+                <TouchableOpacity
+                    onPress={() => {
+                        router.push({
+                            pathname: '/(main)/integrated-meeting',
+                            params: {
+                                roomId: sessionId,
+                                summary: riskAssessment ? riskAssessment.redFlags.join(', ') : 'General Consultation',
+                                imageURL: publicImageUrl ? `${API_URL}${publicImageUrl}` : ''
+                            }
+                        });
+                    }}
+                    className="p-4 rounded-full border-2 bg-indigo-600/20 border-indigo-500/50"
+                >
+                    <Ionicons name="videocam" size={28} color="#818cf8" />
+                </TouchableOpacity>
             </View>
 
             {/* Avatar Overlay */}

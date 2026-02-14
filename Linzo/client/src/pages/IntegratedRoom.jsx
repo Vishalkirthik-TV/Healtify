@@ -168,7 +168,7 @@ const IntegratedRoom = () => {
   useEffect(() => {
     // Fetch user info for avatar
     api.get('/auth/me').then(res => {
-      const userName = res.data?.user?.name || res.data?.name || 'You';
+      const userName = res.data?.user?.name || res.data?.name || 'DermSight Patient';
       setUser({
         name: userName,
         avatar: res.data?.user?.avatar || res.data?.avatar || '',
@@ -180,7 +180,16 @@ const IntegratedRoom = () => {
       api.post(`/meetings/${roomId}/join`, { username: userName })
         .then(() => console.log('✅ [SUMMARY] Meeting registered in DB'))
         .catch(e => console.error('❌ [SUMMARY] Failed to register meeting:', e));
-    }).catch(() => { });
+    }).catch(() => {
+      // Guest Fallback for DermSight patients
+      const guestName = 'DermSight Patient';
+      setUser({ name: guestName, avatar: '' });
+      userNameRef.current = guestName;
+
+      api.post(`/meetings/${roomId}/join`, { username: guestName })
+        .then(() => console.log('✅ [GUEST] Registered as guest in meeting'))
+        .catch(e => console.error('❌ [GUEST] Failed to register guest:', e));
+    });
 
     // Fetch supported languages for translation
     api.get('/translate/supported-languages').then(res => {
@@ -1175,16 +1184,21 @@ const IntegratedRoom = () => {
   };
 
   // Pre-load voices
+  // Pre-load voices - Safety check added for WebView
   useEffect(() => {
-    const loadVoices = () => {
-      const voices = window.speechSynthesis.getVoices();
-      if (voices.length > 0) {
-        console.log('🎤 Voices loaded:', voices.length);
-      }
-    };
-    loadVoices();
-    window.speechSynthesis.onvoiceschanged = loadVoices;
-    return () => { window.speechSynthesis.onvoiceschanged = null; };
+    if (typeof window !== 'undefined' && window.speechSynthesis) {
+      const loadVoices = () => {
+        const voices = window.speechSynthesis.getVoices();
+        if (voices.length > 0) {
+          console.log('🎤 Voices loaded:', voices.length);
+        }
+      };
+      loadVoices();
+      window.speechSynthesis.onvoiceschanged = loadVoices;
+      return () => { window.speechSynthesis.onvoiceschanged = null; };
+    } else {
+      console.log('⚠️ Speech Synthesis not supported in this environment');
+    }
   }, []);
 
   // Removed corrupted manual STT & duplicate testConnection logic.
@@ -1547,6 +1561,25 @@ const IntegratedRoom = () => {
                   console.log('🚀 Joining room with initial webcam stream:', roomId);
                   socketRef.current.emit('join-room', roomId);
                   hasJoinedRef.current = true;
+
+                  // Share Triage Data if present in URL
+                  const summary = searchParams.get('summary');
+                  const triageImage = searchParams.get('image');
+                  if (summary || triageImage) {
+                    console.log('🏥 [TRIAGE] Auto-sharing triage context to meeting...');
+                    let triageMsg = `🏥 **DermSight Triage Summary**:\n${summary || 'No summary provided.'}`;
+                    if (triageImage) {
+                      triageMsg += `\n\n🖼️ **Reference Image**: ${triageImage}`;
+                    }
+
+                    setTimeout(() => {
+                      socketRef.current.emit('chat-message', {
+                        roomId,
+                        message: triageMsg,
+                        sender: 'DermSight AI'
+                      });
+                    }, 2000); // Small delay to ensure participants are ready
+                  }
                 }
               };
               if (socketRef.current?.connected) {
