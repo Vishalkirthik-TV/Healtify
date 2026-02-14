@@ -126,32 +126,36 @@ router.post('/chat', upload.fields([{ name: 'image', maxCount: 1 }, { name: 'aud
         // For now, we rely on the client sending the mock text message
 
         try {
-            console.log("Calling Gemini API with multimodal input...");
+            console.log("Calling Gemini API...");
             const startTime = Date.now();
 
-            // Use the constructed parts array which contains text, image, and/or audio
             const result = await chatSession.sendMessage(parts);
             const response = await result.response;
             const rawText = response.text();
 
-            console.log(`[Gemini] Raw Response: ${rawText}`);
-
-            let parsed;
-            try {
-                // Remove Markdown code blocks if model includes them
-                const cleanJson = rawText.replace(/```json|```/g, "").trim();
-                parsed = JSON.parse(cleanJson);
-            } catch (e) {
-                console.error("Failed to parse Gemini JSON. Raw:", rawText);
-                parsed = { reply: rawText, assessment: null };
-            }
-
+            console.log(`[Gemini] Raw Response: ${rawText.substring(0, 200)}...`);
             console.log(`[Gemini] Response received in ${Date.now() - startTime}ms`);
 
+            // Robust JSON Extraction
+            let cleanedText = rawText.trim();
+            if (cleanedText.includes('```json')) {
+                cleanedText = cleanedText.split('```json')[1].split('```')[0].trim();
+            } else if (cleanedText.includes('```')) {
+                cleanedText = cleanedText.split('```')[1].split('```')[0].trim();
+            }
+
+            // Handle cases where there's text before the first '{'
+            const firstBrace = cleanedText.indexOf('{');
+            const lastBrace = cleanedText.lastIndexOf('}');
+            if (firstBrace !== -1 && lastBrace !== -1) {
+                cleanedText = cleanedText.substring(firstBrace, lastBrace + 1);
+            }
+
+            const aiResponse = JSON.parse(cleanedText);
             res.json({
-                reply: parsed.reply || "I'm processing that.",
-                assessment: parsed.assessment,
-                sessionId: sessionId
+                reply: aiResponse.reply || "I'm processing that.",
+                assessment: aiResponse.assessment,
+                lastActive: Date.now()
             });
         } catch (geminiError) {
             console.error("[Gemini] API ERROR TYPE:", geminiError.constructor.name);

@@ -32,6 +32,7 @@ export default function AvatarTriage() {
         escalate: boolean;
     } | null>(null);
     const [isCameraOn, setIsCameraOn] = useState(true);
+    const isCameraOnRef = useRef(true);
 
     useEffect(() => {
         // Start background analysis loop ONLY if image is not locked
@@ -81,7 +82,7 @@ export default function AvatarTriage() {
     const startContinuousMonitoring = () => {
         if (analysisIntervalRef.current) clearInterval(analysisIntervalRef.current);
         analysisIntervalRef.current = setInterval(async () => {
-            if (isCameraOn && cameraRef.current) {
+            if (isCameraOnRef.current && cameraRef.current) {
                 try {
                     console.log("Capturing interval frame...");
                     const photo = await cameraRef.current.takePictureAsync({
@@ -90,20 +91,26 @@ export default function AvatarTriage() {
                         shutterSound: false
                     });
 
-                    if (photo) {
-                        // Send frame with a context separate from user voice
-                        // We use a specific message to tell AI this is a background frame
+                    // One last check before sending, in case they toggled OFF during the async capture
+                    if (photo && isCameraOnRef.current) {
                         sendToBackend("Background visual check. If you see a skin condition, describe it briefly. If not, say nothing.", null, photo.uri, true);
                     }
                 } catch (e) {
-                    console.log("Monitoring capture failed", e);
+                    // Suppress error if it happened because we toggled privacy mode mid-capture
+                    if (isCameraOnRef.current) {
+                        console.log("Monitoring capture failed", e);
+                    }
                 }
             }
-        }, 10000); // 10 seconds
+        }, 20000); // 20 seconds
     };
 
     const stopContinuousMonitoring = () => {
-        if (analysisIntervalRef.current) clearInterval(analysisIntervalRef.current);
+        if (analysisIntervalRef.current) {
+            console.log("[Monitoring] Stopping background loop.");
+            clearInterval(analysisIntervalRef.current);
+            analysisIntervalRef.current = null;
+        }
     };
 
     const recordingRef = useRef<Audio.Recording | null>(null);
@@ -192,26 +199,36 @@ export default function AvatarTriage() {
 
             let imageToSend = existingImageUri || lockedImageUri;
 
+            // PRIVACY CHECK: If camera is OFF, we MUST NOT send any image
+            if (!isCameraOnRef.current) {
+                console.log(`[Privacy] Suppressing image for sessionId: ${sessionId}. Camera is OFF.`);
+                imageToSend = null;
+            } else {
+                console.log(`[Privacy] Camera is ON. Image detected: ${!!imageToSend}`);
+            }
+
             // If we don't have an image at all, and we are sending a user message (NOT background), capture now and lock it!
-            // ONLY if camera is ON
-            if (!isBackground && !imageToSend && isCameraOn && cameraRef.current) {
+            if (!isBackground && !imageToSend && isCameraOnRef.current && cameraRef.current) {
                 console.log("Capturing initial injury image...");
                 try {
                     const photo = await cameraRef.current.takePictureAsync({ quality: 0.5, skipProcessing: true });
                     imageToSend = photo.uri;
-                    setLockedImageUri(photo.uri); // LOCK THE IMAGE
-                    stopContinuousMonitoring(); // Stop monitoring to save resources
+                    setLockedImageUri(photo.uri);
+                    stopContinuousMonitoring();
                 } catch (e) {
                     console.error("Camera capture failed:", e);
                 }
             }
 
-            if (imageToSend && isCameraOn) {
+            if (imageToSend) {
+                console.log(`[Privacy] Sending image part (${isBackground ? 'Background' : 'User Interaction'})`);
                 formData.append('image', {
                     uri: imageToSend,
                     type: 'image/jpeg',
                     name: 'frame.jpg',
                 } as any);
+            } else if (!isCameraOnRef.current) {
+                console.log("[Privacy] Privacy Mode ACTIVE: No image data included.");
             }
 
             if (audioUri) {
@@ -263,12 +280,20 @@ export default function AvatarTriage() {
     return (
         <Screen className="bg-black">
             {/* Live Camera Feed (Full Screen) */}
-            {!lockedImageUri && isCameraOn && (
-                <CameraView
-                    style={StyleSheet.absoluteFillObject}
-                    facing="back"
-                    ref={cameraRef}
-                />
+            {isCameraOn ? (
+                !lockedImageUri && (
+                    <CameraView
+                        ref={cameraRef}
+                        style={StyleSheet.absoluteFill}
+                        facing="back"
+                        zoom={0}
+                    />
+                )
+            ) : (
+                <View style={[StyleSheet.absoluteFill, { backgroundColor: '#111', justifyContent: 'center', alignItems: 'center' }]}>
+                    <Ionicons name="eye-off" size={64} color="#333" />
+                    <Text className="text-white/40 mt-4 font-medium">Camera Disabled (Privacy Mode)</Text>
+                </View>
             )}
 
             {/* Locked Image Display */}
@@ -365,7 +390,17 @@ export default function AvatarTriage() {
             {/* Bottom Controls */}
             <View className="absolute bottom-12 left-0 right-0 flex-row justify-center items-center space-x-8">
                 <TouchableOpacity
-                    onPress={() => setIsCameraOn(!isCameraOn)}
+                    onPress={() => {
+                        const nextState = !isCameraOn;
+                        setIsCameraOn(nextState);
+                        isCameraOnRef.current = nextState;
+                        if (!nextState) {
+                            console.log("Privacy Mode: Camera DISABLED and UNMOUNTED.");
+                            setLockedImageUri(null); // Clear any pending images for full privacy
+                        } else {
+                            console.log("Privacy Mode: Camera ENABLED.");
+                        }
+                    }}
                     className={`p-4 rounded-full border-2 ${isCameraOn ? 'bg-teal-600/20 border-teal-500/50' : 'bg-red-600/20 border-red-500/50'}`}
                 >
                     <Ionicons name={isCameraOn ? "camera" : "camera-outline"} size={28} color={isCameraOn ? "#2dd4bf" : "#ef4444"} />
