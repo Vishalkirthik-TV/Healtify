@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MediaPipe CDN Test</title>
+</head>
+<body>
+    <h1>MediaPipe CDN Availability Test</h1>
+    <div id="results"></div>
+
+    <script>
+        const cdnPaths = [
+            'https://cdn.jsdelivr.net/npm/@mediapipe/holistic/',
+            'https://unpkg.com/@mediapipe/holistic/',
+            'https://cdn.jsdelivr.net/npm/@mediapipe/holistic@latest/'
+        ];
+
+        const testFiles = [
+            'holistic_solution_packed_assets_loader.js',
+            'holistic_solution_simd_wasm_bin.js',
+            'holistic.js'
+        ];
+
+        async function testCDNPath(basePath) {
+            const results = [];
+            
+            for (const file of testFiles) {
+                try {
+                    const response = await fetch(basePath + file, { method: 'HEAD' });
+                    results.push({
+                        file,
+                        status: response.status,
+                        ok: response.ok,
+                        url: basePath + file
+                    });
+                } catch (error) {
+                    results.push({
+                        file,
+                        status: 'ERROR',
+                        ok: false,
+                        error: error.message,
+                        url: basePath + file
+                    });
+                }
+            }
+            
+            return { basePath, results };
+        }
+
+        async function runTests() {
+            const resultsDiv = document.getElementById('results');
+            resultsDiv.innerHTML = '<p>Testing CDN paths...</p>';
+            
+            for (const cdnPath of cdnPaths) {
+                const result = await testCDNPath(cdnPath);
+                
+                const resultHtml = `
+                    <div style="margin: 20px; padding: 15px; border: 1px solid #ccc; border-radius: 5px;">
+                        <h3>${result.basePath}</h3>
+                        <table style="width: 100%; border-collapse: collapse;">
+                            <tr style="background-color: #f0f0f0;">
+                                <th style="padding: 8px; border: 1px solid #ddd;">File</th>
+                                <th style="padding: 8px; border: 1px solid #ddd;">Status</th>
+                                <th style="padding: 8px; border: 1px solid #ddd;">URL</th>
+                            </tr>
+                            ${result.results.map(r => `
+                                <tr>
+                                    <td style="padding: 8px; border: 1px solid #ddd;">${r.file}</td>
+                                    <td style="padding: 8px; border: 1px solid #ddd; color: ${r.ok ? 'green' : 'red'};">${r.status}</td>
+                                    <td style="padding: 8px; border: 1px solid #ddd; font-size: 12px;">${r.url}</td>
+                                </tr>
+                            `).join('')}
+                        </table>
+                    </div>
+                `;
+                
+                resultsDiv.innerHTML += resultHtml;
+            }
+            
+            resultsDiv.innerHTML += '<p><strong>Test completed!</strong></p>';
+        }
+
+        // Run tests when page loads
+        runTests();
+    </script>
+</body>
+</html>
+

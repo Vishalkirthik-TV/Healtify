@@ -1,0 +1,26 @@
+<svg width="1200" height="800" viewBox="0 0 1200 800" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Illustration">
+  <defs>
+    <linearGradient id="g" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0%" stop-color="#19202a"/>
+      <stop offset="100%" stop-color="#10131a"/>
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="800" fill="url(#g)"/>
+  <g fill="#8ab4f8" opacity="0.3">
+    <circle cx="260" cy="220" r="120"/>
+    <circle cx="520" cy="360" r="100"/>
+    <circle cx="900" cy="260" r="140"/>
+  </g>
+  <g stroke="#1f2329" stroke-width="8" fill="none" opacity="0.6">
+    <rect x="160" y="460" rx="16" ry="16" width="320" height="200"/>
+    <rect x="520" y="420" rx="16" ry="16" width="320" height="240"/>
+    <rect x="880" y="480" rx="16" ry="16" width="160" height="180"/>
+  </g>
+  <g fill="#2b2f36" stroke="#3a3f46" stroke-width="4">
+    <rect x="190" y="490" rx="8" ry="8" width="120" height="80"/>
+    <rect x="340" y="490" rx="8" ry="8" width="120" height="80"/>
+    <rect x="550" y="450" rx="8" ry="8" width="240" height="160"/>
+    <rect x="910" y="510" rx="8" ry="8" width="100" height="80"/>
+  </g>
+</svg>
+
