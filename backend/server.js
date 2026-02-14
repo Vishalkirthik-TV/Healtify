@@ -1,5 +1,6 @@
 require('dotenv').config();
 const express = require('express');
+const mongoose = require('mongoose');
 const multer = require('multer');
 const cors = require('cors');
 const fs = require('fs');
@@ -7,6 +8,11 @@ const { GoogleGenerativeAI } = require("@google/generative-ai");
 
 const app = express();
 const port = 5000;
+
+// Connect to MongoDB
+mongoose.connect(process.env.MONGODB_URI)
+    .then(() => console.log('Connected to MongoDB Atlas'))
+    .catch(err => console.error('MongoDB connection error:', err));
 
 // Middleware
 app.use(cors());
@@ -95,6 +101,13 @@ app.post('/api/triage', upload.single('image'), async (req, res) => {
 app.get('/', (req, res) => {
     res.send('DermSight Backend (Gemini Powered) is running');
 });
+
+// Routes
+const chatRoute = require('./routes/chat');
+const authRoute = require('./routes/auth');
+
+app.use('/api', chatRoute);
+app.use('/api/auth', authRoute);
 
 app.listen(port, () => {
     console.log(`Server running on http://localhost:${port}`);
