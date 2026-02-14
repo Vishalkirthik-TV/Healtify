@@ -23,7 +23,7 @@ const allowedOrigins = [
   'http://localhost:5174',
   'http://localhost:3000',
   'http://localhost:5000',
-  'https://camcorder-submit-pensions-mary.trycloudflare.com', // Frontend Tunnel
+  'https://lancaster-mai-mold-election.trycloudflare.com', // Frontend Tunnel
   process.env.CLIENT_ORIGIN
 ].filter(Boolean);
 

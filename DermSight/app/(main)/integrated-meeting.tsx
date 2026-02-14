@@ -6,14 +6,14 @@ import { TouchableOpacity, Text } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 export default function IntegratedMeeting() {
-    const { roomId, summary, imageURL } = useLocalSearchParams();
+    const { roomId, summary, imageURL, history } = useLocalSearchParams();
     const router = useRouter();
 
     // Base Linzo URL - This must point to the FRONTEND (React App) tunnel
-    // Frontend (5173) -> https://camcorder-submit-pensions-mary.trycloudflare.com
-    const LINZO_BASE_URL = "https://camcorder-submit-pensions-mary.trycloudflare.com";
+    // Frontend (5173) -> https://lancaster-mai-mold-election.trycloudflare.com
+    const LINZO_BASE_URL = "https://lancaster-mai-mold-election.trycloudflare.com";
 
-    const meetingUrl = `${LINZO_BASE_URL}/integrated-room/${roomId}?summary=${encodeURIComponent(summary as string)}&image=${encodeURIComponent(imageURL as string)}`;
+    const meetingUrl = `${LINZO_BASE_URL}/integrated-room/${roomId}?summary=${encodeURIComponent(summary as string)}&image=${encodeURIComponent(imageURL as string)}&history=${encodeURIComponent(history as string)}`;
 
     return (
         <Screen style={{ backgroundColor: '#1e293b' }}>

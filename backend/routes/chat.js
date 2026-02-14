@@ -5,6 +5,7 @@ const multer = require('multer');
 const fs = require('fs');
 const { GoogleGenerativeAI } = require("@google/generative-ai");
 const User = require('../models/User');
+const { fetchConditionImages } = require('../utils/conditionImages');
 
 const upload = multer({ dest: 'uploads/' });
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
@@ -68,8 +69,12 @@ router.post('/chat', upload.fields([{ name: 'image', maxCount: 1 }, { name: 'aud
                                      "confidence": number,
                                      "redFlags": string[],
                                      "escalate": boolean
-                                   }
+                                   },
+                                   "suggestedConditions": ["condition1", "condition2", "condition3"]
                                  }
+                                 
+                                 ### CONDITION SUGGESTIONS RULE:
+                                 When you first analyze a skin image AND the diagnosis is not 100% certain, populate **suggestedConditions** with 3-4 possible dermatological condition names (in English, medical terms). Only include this field when an image is present and you can identify possible conditions. Do NOT include it for follow-up questions or when no image is provided.
                             ` }]
                         },
                         {
@@ -163,10 +168,24 @@ router.post('/chat', upload.fields([{ name: 'image', maxCount: 1 }, { name: 'aud
                 publicImageUrl = `/uploads/${imageFile.filename}`;
             }
 
+            // Fetch condition images if Gemini suggested conditions
+            let conditionSuggestions = null;
+            if (aiResponse.suggestedConditions && Array.isArray(aiResponse.suggestedConditions) && aiResponse.suggestedConditions.length > 0) {
+                console.log(`[Chat] Gemini suggested conditions: ${aiResponse.suggestedConditions.join(', ')}`);
+                try {
+                    conditionSuggestions = await fetchConditionImages(aiResponse.suggestedConditions);
+                    console.log(`[Chat] Fetched ${conditionSuggestions.length} condition images`);
+                } catch (imgErr) {
+                    console.error('[Chat] Error fetching condition images:', imgErr.message);
+                }
+            }
+
             res.json({
                 reply: aiResponse.reply || "I'm processing that.",
                 assessment: aiResponse.assessment,
                 publicImageUrl: publicImageUrl,
+                conditionSuggestions: conditionSuggestions,
+                language: aiResponse.language,
                 lastActive: Date.now()
             });
         } catch (geminiError) {

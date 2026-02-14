@@ -1565,20 +1565,61 @@ const IntegratedRoom = () => {
                   // Share Triage Data if present in URL
                   const summary = searchParams.get('summary');
                   const triageImage = searchParams.get('image');
+                  const historyParam = searchParams.get('history');
+
                   if (summary || triageImage) {
                     console.log('🏥 [TRIAGE] Auto-sharing triage context to meeting...');
                     let triageMsg = `🏥 **DermSight Triage Summary**:\n${summary || 'No summary provided.'}`;
                     if (triageImage) {
                       triageMsg += `\n\n🖼️ **Reference Image**: ${triageImage}`;
                     }
-
                     setTimeout(() => {
+                      // Add locally so sender sees it
+                      setChatMessages(prev => [...prev, {
+                        id: Date.now(),
+                        text: triageMsg,
+                        sender: 'DermSight AI',
+                        timestamp: new Date().toLocaleTimeString()
+                      }]);
+                      // Broadcast to others
                       socketRef.current.emit('chat-message', {
                         roomId,
                         message: triageMsg,
                         sender: 'DermSight AI'
                       });
-                    }, 2000); // Small delay to ensure participants are ready
+                    }, 2000);
+                  }
+
+                  if (historyParam) {
+                    try {
+                      const history = JSON.parse(decodeURIComponent(historyParam));
+                      if (Array.isArray(history) && history.length > 0) {
+                        console.log('💬 [TRIAGE] Auto-sharing full chat history (' + history.length + ' messages)...');
+                        history.forEach((msg, index) => {
+                          const isUser = msg.role === 'user';
+                          const msgText = msg.text;
+                          const senderName = isUser ? 'Patient' : 'DermSight AI';
+                          setTimeout(() => {
+                            const chatMsg = {
+                              id: Date.now() + index,
+                              text: `**${senderName}**: ${msgText}`,
+                              sender: senderName,
+                              timestamp: new Date().toLocaleTimeString()
+                            };
+                            // Add locally
+                            setChatMessages(prev => [...prev, chatMsg]);
+                            // Broadcast to others
+                            socketRef.current.emit('chat-message', {
+                              roomId,
+                              message: chatMsg.text,
+                              sender: senderName
+                            });
+                          }, 2500 + (index * 300));
+                        });
+                      }
+                    } catch (e) {
+                      console.error("Failed to parse history", e);
+                    }
                   }
                 }
               };

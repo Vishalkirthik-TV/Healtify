@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Dimensions, Image } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Dimensions, Image, ScrollView } from 'react-native';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { Screen } from '../../components/Screen';
 import AvatarView from '../components/AvatarView';
@@ -34,6 +34,9 @@ export default function AvatarTriage() {
     const [isCameraOn, setIsCameraOn] = useState(true);
     const isCameraOnRef = useRef(true);
     const [publicImageUrl, setPublicImageUrl] = useState<string | null>(null);
+    const [captionText, setCaptionText] = useState<string | null>(null);
+    const [chatHistory, setChatHistory] = useState<{ role: string; text: string; image?: string }[]>([]);
+    const [conditionSuggestions, setConditionSuggestions] = useState<{ name: string; imageUrl: string }[] | null>(null);
 
     useEffect(() => {
         // Start background analysis loop ONLY if image is not locked
@@ -49,6 +52,7 @@ export default function AvatarTriage() {
         return () => {
             stopContinuousMonitoring();
             Speech.stop();
+            setCaptionText(null);
         };
     }, [lockedImageUri]);
 
@@ -62,15 +66,18 @@ export default function AvatarTriage() {
     const speak = (text: string, language: string = 'en') => {
         setAiStatus("Speaking...");
         setIsSpeaking(true);
+        setCaptionText(text);
         Speech.speak(text, {
             language: language,
             onDone: () => {
                 setIsSpeaking(false);
                 setAiStatus("Ready"); // Changed from "Listening..." to "Ready" as it's not always listening after speaking
+                setCaptionText(null);
             },
             onError: () => {
                 setIsSpeaking(false);
                 setAiStatus("Error speaking");
+                setCaptionText(null);
             }
         });
     };
@@ -78,6 +85,7 @@ export default function AvatarTriage() {
     const handleEnd = () => {
         Speech.stop();
         setIsSpeaking(false);
+        setCaptionText(null);
         router.replace('/(main)');
     };
 
@@ -126,6 +134,7 @@ export default function AvatarTriage() {
             if (isSpeaking) {
                 Speech.stop();
                 setIsSpeaking(false);
+                setCaptionText(null);
             }
 
             isRecordingPending.current = true;
@@ -241,6 +250,11 @@ export default function AvatarTriage() {
                 } as any);
             }
 
+            // optimistic update for user message (text only for now, audio is harder to transcribe locally without backend)
+            if (text && !isBackground) {
+                setChatHistory(prev => [...prev, { role: 'user', text }]);
+            }
+
             const res = await axios.post(`${API_URL}/chat`, formData, {
                 headers: { 'Content-Type': 'multipart/form-data' }
             });
@@ -260,8 +274,17 @@ export default function AvatarTriage() {
                     }
                 }
 
+                // Show condition suggestion cards if provided
+                if (res.data.conditionSuggestions && res.data.conditionSuggestions.length > 0 && !isBackground) {
+                    setConditionSuggestions(res.data.conditionSuggestions);
+                }
+
                 if (isBackground && res.data.reply.trim().toLowerCase().includes("nothing")) {
                     return;
+                }
+
+                if (!isBackground) {
+                    setChatHistory(prev => [...prev, { role: 'ai', text: res.data.reply }]);
                 }
 
                 speak(res.data.reply, res.data.language || 'en');
@@ -275,6 +298,13 @@ export default function AvatarTriage() {
                 setAiStatus("Connection Error");
             }
         }
+    };
+
+    const handleConditionSelect = async (condition: { name: string; imageUrl: string }) => {
+        setConditionSuggestions(null);
+        speak("Got it. That helps narrow it down.");
+        // Send the selection to Gemini for more focused analysis
+        await sendToBackend(`I think my condition looks most like: ${condition.name}`, null, undefined, false);
     };
 
     if (!permission?.granted) {
@@ -425,6 +455,39 @@ export default function AvatarTriage() {
                 </View>
             )}
 
+            {/* Condition Suggestion Cards */}
+            {conditionSuggestions && conditionSuggestions.length > 0 && (
+                <View className="absolute bottom-44 left-0 right-0 z-50 px-4">
+                    <View className="bg-black/80 rounded-2xl px-4 py-3 border border-white/10">
+                        <Text className="text-white/90 text-xs font-semibold mb-2 text-center">
+                            Tap the condition that looks closest to yours:
+                        </Text>
+                        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 10 }}>
+                            {conditionSuggestions.map((condition, idx) => (
+                                <TouchableOpacity
+                                    key={idx}
+                                    onPress={() => handleConditionSelect(condition)}
+                                    className="items-center bg-white/10 rounded-xl p-2 border border-white/20"
+                                    style={{ width: 90 }}
+                                    activeOpacity={0.7}
+                                >
+                                    <Image
+                                        source={{ uri: condition.imageUrl }}
+                                        style={{ width: 70, height: 70, borderRadius: 10 }}
+                                        resizeMode="cover"
+                                    />
+                                    <Text className="text-white text-[9px] font-medium mt-1 text-center" numberOfLines={2}>
+                                        {condition.name}
+                                    </Text>
+                                </TouchableOpacity>
+                            ))}
+                        </ScrollView>
+                        <TouchableOpacity onPress={() => setConditionSuggestions(null)} className="mt-2 items-center">
+                            <Text className="text-white/50 text-[10px]">None of these match</Text>
+                        </TouchableOpacity>
+                    </View>
+                </View>
+            )}
             {/* Bottom Controls */}
             <View className="absolute bottom-12 left-0 right-0 flex-row justify-center items-center space-x-8">
                 <TouchableOpacity
@@ -468,7 +531,8 @@ export default function AvatarTriage() {
                             params: {
                                 roomId: sessionId,
                                 summary: riskAssessment ? riskAssessment.redFlags.join(', ') : 'General Consultation',
-                                imageURL: publicImageUrl ? `${API_URL}${publicImageUrl}` : ''
+                                imageURL: publicImageUrl ? `${API_URL}${publicImageUrl}` : '',
+                                history: JSON.stringify(chatHistory)
                             }
                         });
                     }}
@@ -502,7 +566,20 @@ export default function AvatarTriage() {
                 </TouchableOpacity>
             </View>
 
-        </Screen>
+            {/* Live Captions Overlay - Moved to Bottom (fixed position) */}
+            {
+                captionText && (
+                    <View className="absolute bottom-40 left-6 right-6 items-center z-50 pointer-events-none">
+                        <View className="bg-black/80 px-4 py-3 rounded-xl border border-white/5 shadow-sm backdrop-blur-sm">
+                            <Text className="text-white text-base font-normal text-center leading-5 opacity-90">
+                                {captionText}
+                            </Text>
+                        </View>
+                    </View>
+                )
+            }
+
+        </Screen >
     );
 }
 
