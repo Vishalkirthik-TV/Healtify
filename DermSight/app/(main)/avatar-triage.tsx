@@ -184,8 +184,9 @@ export default function AvatarTriage() {
         try {
             const formData = new FormData();
             formData.append('sessionId', sessionId);
-            if (user?.id) {
-                formData.append('userId', user.id);
+            const userId = user?.id || (user as any)?._id;
+            if (userId) {
+                formData.append('userId', userId);
             }
             if (text) formData.append('message', text);
 

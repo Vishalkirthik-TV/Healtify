@@ -52,7 +52,15 @@ router.get('/profile', async (req, res) => {
 
         const decoded = jwt.verify(token, process.env.JWT_SECRET);
         const user = await User.findById(decoded.id).select('-password');
-        res.json(user);
+        if (!user) return res.status(404).json({ error: "User not found" });
+
+        res.json({
+            id: user._id,
+            name: user.name,
+            email: user.email,
+            medicalHistory: user.medicalHistory,
+            reportMeta: user.reportMeta
+        });
     } catch (err) {
         res.status(401).json({ error: "Token is not valid" });
     }
@@ -73,7 +81,13 @@ router.post('/profile/medical-history', async (req, res) => {
             { new: true }
         ).select('-password');
 
-        res.json(user);
+        res.json({
+            id: user._id,
+            name: user.name,
+            email: user.email,
+            medicalHistory: user.medicalHistory,
+            reportMeta: user.reportMeta
+        });
     } catch (err) {
         console.error(err);
         res.status(500).json({ error: "Failed to update medical history" });
@@ -110,7 +124,13 @@ router.post('/upload-report', upload.single('report'), async (req, res) => {
 
         res.json({
             message: "Report uploaded and processed successfully",
-            user,
+            user: {
+                id: user._id,
+                name: user.name,
+                email: user.email,
+                medicalHistory: user.medicalHistory,
+                reportMeta: user.reportMeta
+            },
             extractedPreview: extractedText.substring(0, 500) // Send a preview of what was found
         });
     } catch (err) {

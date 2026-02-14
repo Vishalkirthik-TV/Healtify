@@ -39,6 +39,7 @@ router.post('/chat', upload.fields([{ name: 'image', maxCount: 1 }, { name: 'aud
 
         // Initialize session if new
         if (!chatSessions[sessionId]) {
+            console.log(`[Chat] Initializing new session: ${sessionId}`);
             const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
             chatSessions[sessionId] = {
                 chat: model.startChat({
@@ -48,52 +49,55 @@ router.post('/chat', upload.fields([{ name: 'image', maxCount: 1 }, { name: 'aud
                             parts: [{
                                 text: `
                                 You are "DermSight AI", a compassionate and expert dermatologist companion.
-                                Your primary goal is to triage skin conditions using the patient's medical context and the current symptoms they present (via images, audio, or text).
-                                
-                                ### PATIENT DATABASE CONTEXT:
-                                ${historyPrompt}
+                                Your primary goal is to triage skin conditions using the patient's medical context and the current symptoms they present.
                                 
                                 ### OPERATIONAL RULES:
-                                1. **Context Awareness**: Use the "Patient Medical History" and "Medical Report Context" above to personalize your questions and assessments.
-                                2. **Record Summary**: If the patient asks "What do you know about my history?" or "What's in my report?", provide a concise summary based ONLY on the context provided above.
-                                3. **Single Interaction**: Ask ONE clear, relevant question at a time to keep the triage focused.
-                                4. **Multimodal Analysis**: Silently analyze any provided images or audio. If an image shows a lesion and the medical history mentions "Eczema", consider this connection in your Assessment, but do not provide a definitive diagnosis.
-                                5. **JSON Output**: You MUST ALWAYS respond in valid JSON format according to the schema below.
+                                1. **Context Awareness**: Use the "Patient Medical History" and "Medical Report Context" provided to personalize your assessments.
+                                2. **Record Summary**: If the patient asks about their history or reports, provide a concise summary based ONLY on the provided context.
+                                3. **Single Interaction**: Ask ONE clear, relevant question at a time.
+                                4. **Multimodal Analysis**: Silently analyze provided images or audio. 
+                                5. **JSON Output**: You MUST ALWAYS respond in valid JSON format.
                                 
                                 ### JSON SCHEMA:
                                 {
-                                  "reply": "Conversational text to be spoken to the patient.",
+                                  "reply": "Conversational text.",
                                   "assessment": {
                                     "risk": "Low" | "Moderate" | "High",
-                                    "confidence": number (0-100),
+                                    "confidence": number,
                                     "redFlags": string[],
                                     "escalate": boolean
                                   }
                                 }
-
-                                IMPORTANT: If the user provides a clinical report, leverage its findings (e.g., specific medications or past diagnoses) to ask more targeted triage questions.
                             ` }]
                         },
                         {
                             role: "model",
-                            parts: [{ text: JSON.stringify({ reply: "Understood. I have reviewed your medical history context. I am ready to triage. Please show me the affected area or describe your symptoms." }) }]
+                            parts: [{ text: JSON.stringify({ reply: "Understood. I'm ready to assist you." }) }]
                         }
                     ],
                     generationConfig: {
                         maxOutputTokens: 250,
                     },
                 }),
-                lastActive: Date.now()
+                lastActive: Date.now(),
+                hasContext: false
             };
         }
 
         const chatSession = chatSessions[sessionId].chat;
+        const parts = [];
+
+        // BUNDLE CONTEXT: If userId is now available but context hasn't been injected, prefix it to this message
+        if (userId && !chatSessions[sessionId].hasContext && historyPrompt) {
+            console.log(`[Chat] Bundling medical context into session ${sessionId}`);
+            parts.push({ text: `SYSTEM: Patient Medical History & Report Context found. Use this for all future responses:\n${historyPrompt}\n\nUser Input following below:` });
+            chatSessions[sessionId].hasContext = true;
+        }
         let mediaPart;
 
         const imageFile = req.files?.['image']?.[0];
         const audioFile = req.files?.['audio']?.[0];
 
-        const parts = [];
         if (message) parts.push({ text: message });
 
         if (imageFile) {
@@ -107,9 +111,7 @@ router.post('/chat', upload.fields([{ name: 'image', maxCount: 1 }, { name: 'aud
         }
 
         if (audioFile) {
-            console.log("Analyzing attached audio...");
-            // Expo default 'm4a' is usually AAC. 
-            // Gemini accepts 'audio/aac'.
+            console.log(`[Chat] Attaching audio data: ${audioFile.path} (${audioFile.size} bytes)`);
             parts.push({
                 inlineData: {
                     data: fs.readFileSync(audioFile.path).toString("base64"),
