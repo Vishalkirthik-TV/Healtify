@@ -27,9 +27,9 @@ export function Button({
     const baseStyles = "flex-row items-center justify-center rounded-xl";
 
     const variants = {
-        primary: "bg-teal-600 active:bg-teal-700",
+        primary: "bg-purple-600 active:bg-purple-700",
         secondary: "bg-slate-200 active:bg-slate-300",
-        outline: "border-2 border-teal-600 bg-transparent active:bg-teal-50",
+        outline: "border-2 border-purple-600 bg-transparent active:bg-purple-50",
         ghost: "bg-transparent active:bg-slate-100",
         danger: "bg-red-500 active:bg-red-600",
     };
@@ -43,7 +43,7 @@ export function Button({
     const textVariants = {
         primary: "text-white font-bold",
         secondary: "text-slate-900 font-semibold",
-        outline: "text-teal-600 font-bold",
+        outline: "text-purple-600 font-bold",
         ghost: "text-slate-600 font-semibold",
         danger: "text-white font-bold",
     };
@@ -61,7 +61,7 @@ export function Button({
             )}
         >
             {loading ? (
-                <ActivityIndicator color={variant === "outline" ? "#0d9488" : "white"} />
+                <ActivityIndicator color={variant === "outline" ? "#9333ea" : "white"} />
             ) : (
                 <View className="flex-row items-center">
                     {icon && <View className="mr-2">{icon}</View>}

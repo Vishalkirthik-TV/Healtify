@@ -156,8 +156,8 @@ const styles = StyleSheet.create({
     borderRadius: 75,
     overflow: 'hidden',
     borderWidth: 2,
-    borderColor: 'rgba(255,255,255,0.3)',
-    backgroundColor: 'rgba(0,0,0,0.3)', // Semi-transparent fallback
+    borderColor: 'transparent',
+    backgroundColor: 'transparent',
   },
   webview: {
     backgroundColor: 'transparent',

@@ -34,23 +34,23 @@ export default function Login() {
     };
 
     return (
-        <Screen className="bg-slate-950 flex-1">
+        <Screen className="bg-white flex-1">
             <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} className="flex-1">
                 <ScrollView contentContainerStyle={{ flexGrow: 1, justifyContent: 'center', padding: 24 }}>
                     <TouchableOpacity onPress={() => router.push('/onboarding')} className="mb-8 items-start">
-                        <Ionicons name="help-circle-outline" size={24} color="white" />
+                        <Ionicons name="help-circle-outline" size={28} color="#9333ea" />
                     </TouchableOpacity>
 
-                    <Text className="text-white text-4xl font-bold mb-2">Welcome Back</Text>
-                    <Text className="text-white/60 text-lg mb-12">Continue your skin health tracking</Text>
+                    <Text className="text-slate-900 text-4xl font-bold mb-2">Welcome Back</Text>
+                    <Text className="text-slate-500 text-lg mb-12">Continue your health tracking</Text>
 
                     <View className="space-y-6">
                         <View>
-                            <Text className="text-white/80 text-sm font-medium mb-2 ml-1">Email Address</Text>
+                            <Text className="text-slate-700 text-base font-semibold mb-3 ml-1">Email Address</Text>
                             <TextInput
-                                className="bg-white/10 p-5 rounded-2xl text-white border border-white/10"
+                                className="bg-slate-50 p-5 rounded-2xl text-slate-900 border border-slate-200 focus:border-purple-500"
                                 placeholder="name@domain.com"
-                                placeholderTextColor="#ffffff40"
+                                placeholderTextColor="#94a3b8"
                                 keyboardType="email-address"
                                 autoCapitalize="none"
                                 value={email}
@@ -59,11 +59,11 @@ export default function Login() {
                         </View>
 
                         <View>
-                            <Text className="text-white/80 text-sm font-medium mb-2 ml-1">Password</Text>
+                            <Text className="text-slate-700 text-base font-semibold mb-3 ml-1">Password</Text>
                             <TextInput
-                                className="bg-white/10 p-5 rounded-2xl text-white border border-white/10"
+                                className="bg-slate-50 p-5 rounded-2xl text-slate-900 border border-slate-200 focus:border-purple-500"
                                 placeholder="••••••••"
-                                placeholderTextColor="#ffffff40"
+                                placeholderTextColor="#94a3b8"
                                 secureTextEntry
                                 value={password}
                                 onChangeText={setPassword}
@@ -73,7 +73,7 @@ export default function Login() {
                         <TouchableOpacity
                             onPress={handleLogin}
                             disabled={isLoading}
-                            className="bg-cyan-600 p-5 rounded-2xl items-center shadow-lg shadow-cyan-500/20"
+                            className="bg-purple-600 p-5 rounded-2xl items-center shadow-lg shadow-purple-200"
                         >
                             {isLoading ? (
                                 <ActivityIndicator color="white" />
@@ -83,9 +83,9 @@ export default function Login() {
                         </TouchableOpacity>
 
                         <View className="flex-row justify-center space-x-2">
-                            <Text className="text-white/60 text-lg">New to DermSight?</Text>
+                            <Text className="text-slate-500 text-lg">New to Linzo?</Text>
                             <TouchableOpacity onPress={() => router.push('/signup')}>
-                                <Text className="text-cyan-400 font-bold text-lg">Sign Up</Text>
+                                <Text className="text-purple-600 font-bold text-lg">Sign Up</Text>
                             </TouchableOpacity>
                         </View>
                     </View>

@@ -1,9 +1,9 @@
 {
   "expo": {
-    "name": "DermSight",
-    "slug": "DermSight",
+    "name": "Linzo",
+    "slug": "Linzo",
     "version": "1.0.0",
-    "scheme": "dermsight",
+    "scheme": "linzo",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",

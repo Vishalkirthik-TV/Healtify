@@ -46,74 +46,75 @@ export default function Profile() {
     };
 
     return (
-        <Screen className="bg-slate-950 flex-1">
-            <View className="p-6 flex-row items-center justify-between border-b border-white/10">
-                <TouchableOpacity onPress={() => router.back()}>
-                    <Ionicons name="close" size={28} color="white" />
+        <Screen safeArea scrollable className="bg-white" style={{ backgroundColor: '#ffffff' }} contentContainerStyle={{ backgroundColor: '#ffffff', paddingBottom: 120 }} footer={<Navbar />}>
+            <View className="px-6 py-4 flex-row items-center justify-between border-b border-slate-100">
+                <TouchableOpacity onPress={() => router.back()} className="p-2 -ml-2">
+                    <Ionicons name="close" size={28} color="#9333ea" />
                 </TouchableOpacity>
-                <Text className="text-white text-xl font-bold">My Profile</Text>
-                <TouchableOpacity onPress={logout} className="bg-red-500/10 px-4 py-2 rounded-full">
-                    <Text className="text-red-400 font-bold">Logout</Text>
+                <Text className="text-slate-900 text-xl font-bold">My Profile</Text>
+                <TouchableOpacity onPress={logout} className="bg-red-50 px-4 py-2 rounded-full border border-red-100">
+                    <Text className="text-red-600 font-bold text-sm">Logout</Text>
                 </TouchableOpacity>
             </View>
 
-            <ScrollView className="p-6" contentContainerStyle={{ paddingBottom: 120 }}>
-                <View className="items-center mb-8">
-                    <View className="w-24 h-24 bg-teal-500/20 rounded-full items-center justify-center mb-4">
-                        <Text className="text-teal-400 text-3xl font-bold">{user?.name?.charAt(0)}</Text>
+            <ScrollView className="flex-1">
+                <View className="items-center py-10 px-6">
+                    <View className="w-28 h-28 bg-purple-50 rounded-full items-center justify-center mb-5 border-4 border-purple-100 shadow-sm">
+                        <Text className="text-purple-600 text-4xl font-bold">{user?.name?.charAt(0)}</Text>
                     </View>
-                    <Text className="text-white text-2xl font-bold">{user?.name}</Text>
-                    <Text className="text-white/40">{user?.email}</Text>
+                    <Text className="text-slate-900 text-3xl font-bold mb-1">{user?.name}</Text>
+                    <Text className="text-slate-500 text-base">{user?.email}</Text>
                 </View>
 
-                <View className="space-y-6 mb-12">
-                    <Text className="text-white text-lg font-bold mb-2">Medical History</Text>
+                <View className="px-6 space-y-10 pb-10">
+                    <Text className="text-slate-900 text-2xl font-bold mb-2">Medical History</Text>
 
                     <View>
-                        <Text className="text-white/60 text-sm mb-2">Chronic Conditions (comma separated)</Text>
+                        <Text className="text-slate-700 text-base font-semibold mb-3 ml-1">Chronic Conditions</Text>
                         <TextInput
-                            className="bg-white/5 p-4 rounded-xl text-white border border-white/10"
+                            className="bg-slate-50 p-5 rounded-2xl text-slate-900 border border-slate-200 focus:border-purple-500"
                             placeholder="e.g. Eczema, Psoriasis"
-                            placeholderTextColor="#ffffff30"
+                            placeholderTextColor="#94a3b8"
                             value={history.chronicConditions}
                             onChangeText={(t) => setHistory({ ...history, chronicConditions: t })}
                         />
                     </View>
 
                     <View>
-                        <Text className="text-white/60 text-sm mb-2">Allergies (comma separated)</Text>
+                        <Text className="text-slate-700 text-base font-semibold mb-3 ml-1">Allergies</Text>
                         <TextInput
-                            className="bg-white/5 p-4 rounded-xl text-white border border-white/10"
+                            className="bg-slate-50 p-5 rounded-2xl text-slate-900 border border-slate-200 focus:border-purple-500"
                             placeholder="e.g. Penicillin, Latex"
-                            placeholderTextColor="#ffffff30"
+                            placeholderTextColor="#94a3b8"
                             value={history.allergies}
                             onChangeText={(t) => setHistory({ ...history, allergies: t })}
                         />
                     </View>
 
                     <View>
-                        <Text className="text-white/60 text-sm mb-2">Skin Type</Text>
-                        <View className="flex-row flex-wrap gap-2">
+                        <Text className="text-slate-700 text-base font-semibold mb-3 ml-1">Skin Type</Text>
+                        <View className="flex-row flex-wrap gap-3">
                             {SKIN_TYPES.map(type => (
                                 <TouchableOpacity
                                     key={type}
                                     onPress={() => setHistory({ ...history, skinType: type })}
-                                    className={`px-4 py-2 rounded-full border ${history.skinType === type ? 'bg-teal-600 border-teal-600' : 'bg-transparent border-white/20'}`}
+                                    className={`px-5 py-3 rounded-full border ${history.skinType === type ? 'bg-purple-600 border-purple-600 shadow-md shadow-purple-200' : 'bg-white border-slate-200 shadow-sm'}`}
                                 >
-                                    <Text className={`text-sm ${history.skinType === type ? 'text-white font-bold' : 'text-white/60'}`}>{type}</Text>
+                                    <Text className={`text-sm ${history.skinType === type ? 'text-white font-bold' : 'text-slate-600'}`}>{type}</Text>
                                 </TouchableOpacity>
                             ))}
                         </View>
                     </View>
 
                     <View>
-                        <Text className="text-white/60 text-sm mb-2">Relevant Past Issues</Text>
+                        <Text className="text-slate-700 text-base font-semibold mb-3 ml-1">Relevant Past Issues</Text>
                         <TextInput
-                            className="bg-white/5 p-4 rounded-xl text-white border border-white/10"
+                            className="bg-slate-50 p-5 rounded-3xl text-slate-900 border border-slate-200 focus:border-purple-500"
                             placeholder="Describe any past dermatological issues..."
-                            placeholderTextColor="#ffffff30"
+                            placeholderTextColor="#94a3b8"
                             multiline
                             numberOfLines={4}
+                            textAlignVertical="top"
                             value={history.pastIssues}
                             onChangeText={(t) => setHistory({ ...history, pastIssues: t })}
                         />
@@ -122,17 +123,16 @@ export default function Profile() {
                     <TouchableOpacity
                         onPress={handleSave}
                         disabled={isLoading}
-                        className="bg-teal-600 p-5 rounded-2xl items-center shadow-lg"
+                        className="bg-purple-600 p-5 rounded-2xl items-center shadow-lg shadow-purple-200 mt-4"
                     >
                         {isLoading ? (
                             <ActivityIndicator color="white" />
                         ) : (
-                            <Text className="text-white font-bold text-lg">Save History</Text>
+                            <Text className="text-white font-bold text-xl">Save History</Text>
                         )}
                     </TouchableOpacity>
                 </View>
             </ScrollView>
-            <Navbar />
         </Screen>
     );
 }

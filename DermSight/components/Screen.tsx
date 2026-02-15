@@ -8,6 +8,7 @@ interface ScreenProps extends ViewProps {
     safeArea?: boolean;
     className?: string;
     contentContainerStyle?: any;
+    footer?: React.ReactNode;
 }
 
 export function Screen({
@@ -17,6 +18,7 @@ export function Screen({
     className,
     style,
     contentContainerStyle,
+    footer,
     ...props
 }: ScreenProps) {
     const insets = useSafeAreaInsets();
@@ -28,7 +30,7 @@ export function Screen({
 
     if (scrollable) {
         return (
-            <View className="flex-1 bg-slate-50">
+            <View className={cn("flex-1", !className?.includes("bg-") && "bg-slate-50", className)} style={style}>
                 <StatusBar style="dark" />
                 <ScrollView
                     contentContainerStyle={[
@@ -36,24 +38,26 @@ export function Screen({
                         { flexGrow: 1 },
                         contentContainerStyle
                     ]}
-                    className={cn("flex-1", className)}
+                    className="flex-1"
                     keyboardShouldPersistTaps="handled"
                     {...props}
                 >
                     {children}
                 </ScrollView>
+                {footer}
             </View>
         );
     }
 
     return (
         <View
-            style={containerStyle}
-            className={cn("flex-1 bg-slate-50", className)}
+            style={[containerStyle, style]}
+            className={cn("flex-1", !className?.includes("bg-") && "bg-slate-50", className)}
             {...props}
         >
             <StatusBar style="dark" />
             {children}
+            {footer}
         </View>
     );
 }

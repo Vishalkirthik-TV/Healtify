@@ -2,6 +2,7 @@ import React from 'react';
 import { View, TouchableOpacity, Text, StyleSheet } from 'react-native';
 import { useRouter, usePathname } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export function Navbar() {
     const router = useRouter();
@@ -13,8 +14,10 @@ export function Navbar() {
         { name: 'Profile', icon: 'person', path: '/(main)/profile' },
     ];
 
+    const insets = useSafeAreaInsets();
+
     return (
-        <View style={styles.container}>
+        <View style={[styles.container, { paddingBottom: Math.max(insets.bottom, 12) + 8 }]}>
             {tabs.map((tab) => {
                 const isActive = pathname === tab.path || (tab.path === '/(main)' && pathname === '/');
                 return (
@@ -26,7 +29,7 @@ export function Navbar() {
                         <Ionicons
                             name={isActive ? (tab.icon as any) : (`${tab.icon}-outline` as any)}
                             size={24}
-                            color={isActive ? '#2dd4bf' : '#94a3b8'}
+                            color={isActive ? '#9333ea' : '#94a3b8'}
                         />
                         <Text style={[styles.label, isActive && styles.activeLabel]}>
                             {tab.name}
@@ -41,22 +44,17 @@ export function Navbar() {
 const styles = StyleSheet.create({
     container: {
         flexDirection: 'row',
-        backgroundColor: '#0f172a',
+        backgroundColor: '#ffffff',
         borderTopWidth: 1,
-        borderTopColor: '#1e293b',
-        paddingBottom: 25,
+        borderTopColor: '#f1f5f9',
         paddingTop: 12,
-        position: 'absolute',
-        bottom: 0,
-        left: 0,
-        right: 0,
         justifyContent: 'space-around',
         alignItems: 'center',
-        elevation: 10,
+        elevation: 20,
         shadowColor: '#000',
-        shadowOffset: { width: 0, height: -4 },
-        shadowOpacity: 0.1,
-        shadowRadius: 10,
+        shadowOffset: { width: 0, height: -12 },
+        shadowOpacity: 0.08,
+        shadowRadius: 16,
     },
     tab: {
         alignItems: 'center',
@@ -67,10 +65,10 @@ const styles = StyleSheet.create({
         fontSize: 10,
         marginTop: 4,
         color: '#94a3b8',
-        fontWeight: '500',
+        fontWeight: '600',
     },
     activeLabel: {
-        color: '#2dd4bf',
+        color: '#9333ea',
         fontWeight: '700',
     },
 });

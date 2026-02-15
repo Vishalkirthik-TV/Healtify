@@ -27,7 +27,7 @@ export default function Report() {
           <head>
             <style>
               body { font-family: 'Helvetica', sans-serif; padding: 40px; }
-              h1 { color: #0f172a; border-bottom: 2px solid #0d9488; padding-bottom: 10px; }
+              h1 { color: #0f172a; border-bottom: 2px solid #9333ea; padding-bottom: 10px; }
               .section { margin-bottom: 20px; }
               .label { font-weight: bold; color: #475569; }
               .value { color: #1e293b; }
@@ -38,7 +38,7 @@ export default function Report() {
             </style>
           </head>
           <body>
-            <h1>DermSight Triage Report</h1>
+            <h1>Linzo Triage Report</h1>
             <p>Date: ${date}</p>
             
             <div class="section">
@@ -82,7 +82,7 @@ export default function Report() {
     };
 
     return (
-        <Screen safeArea scrollable className="p-6">
+        <Screen safeArea scrollable className="p-6 bg-white" style={{ backgroundColor: '#ffffff' }} contentContainerStyle={{ backgroundColor: '#ffffff' }}>
             <View className="flex-row justify-between items-center mb-6">
                 <Title>Triage Report</Title>
                 <Caption>{date}</Caption>
@@ -110,7 +110,7 @@ export default function Report() {
                 <Subtitle className="mb-2">AI Assessment</Subtitle>
                 <View className="flex-row items-center mb-2">
                     <Body className="text-slate-500 mr-2">Risk Level:</Body>
-                    <Body className={`font-bold ${result?.risk_level === 'High' ? 'text-red-600' : 'text-slate-900'}`}>
+                    <Body className={`font-bold ${result?.risk_level === 'High' ? 'text-red-600' : 'text-purple-600'}`}>
                         {result?.risk_level}
                     </Body>
                 </View>

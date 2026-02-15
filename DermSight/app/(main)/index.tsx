@@ -15,11 +15,11 @@ export default function Home() {
     const [emergencyModalVisible, setEmergencyModalVisible] = useState(false);
 
     return (
-        <Screen safeArea scrollable className="px-6 py-6" contentContainerStyle={{ paddingBottom: 100 }}>
+        <Screen safeArea scrollable className="px-6 py-6" style={{ backgroundColor: '#FFFFFF' }} contentContainerStyle={{ paddingBottom: 100, backgroundColor: '#FFFFFF' }} footer={<Navbar />}>
             <View className="flex-row items-center justify-between mb-6">
                 <View>
-                    <Text className="text-white text-xl font-bold">Hello!</Text>
-                    <Text className="text-slate-400">How can I help you today?</Text>
+                    <Text className="text-slate-900 text-2xl font-bold">Hello!</Text>
+                    <Text className="text-slate-500 text-lg">How can I help you today?</Text>
                 </View>
                 <View className="flex-row gap-3">
                     <TouchableOpacity
@@ -28,8 +28,8 @@ export default function Home() {
                     >
                         <Ionicons name="warning" size={24} color="#ef4444" />
                     </TouchableOpacity>
-                    <TouchableOpacity className="bg-slate-800 p-2 rounded-full">
-                        <Ionicons name="notifications-outline" size={24} color="white" />
+                    <TouchableOpacity className="bg-slate-100 p-2.5 rounded-full border border-slate-200">
+                        <Ionicons name="notifications-outline" size={24} color="#64748b" />
                     </TouchableOpacity>
                 </View>
             </View>
@@ -41,20 +41,21 @@ export default function Home() {
             />
 
             {/* Primary Action - Talk to AI */}
-            <Card className="bg-teal-900/40 border-teal-500/30 mb-6 overflow-hidden" >
-                <View className="absolute right-0 top-0 bottom-0 w-32 bg-teal-500/10 -skew-x-12 translate-x-8" />
+            <Card className="bg-purple-50 border-purple-100 mb-6 shadow-sm overflow-hidden" >
+                <View className="absolute right-0 top-0 bottom-0 w-32 bg-purple-100/50 -skew-x-12 translate-x-8" />
                 <View className="p-6">
-                    <View className="bg-teal-500/20 w-12 h-12 rounded-full items-center justify-center mb-4">
-                        <MaterialCommunityIcons name="robot-excited-outline" size={28} color="#2dd4bf" />
+                    <View className="bg-purple-100 w-12 h-12 rounded-full items-center justify-center mb-4 border border-purple-200">
+                        <MaterialCommunityIcons name="robot-excited-outline" size={28} color="#9333ea" />
                     </View>
-                    <Text className="text-white text-xl font-bold mb-2">Talk to AI Assistant</Text>
-                    <Text className="text-slate-300 mb-6">
+                    <Text className="text-slate-900 text-2xl font-bold mb-2">Talk to AI Assistant</Text>
+                    <Text className="text-slate-600 text-base mb-6 leading-6">
                         Start a live video triage with our AI avatar. Describe your symptoms and show the condition.
                     </Text>
                     <Button
                         title="Start Live Triage"
                         onPress={() => router.push('/(main)/avatar-triage')}
                         variant="primary"
+                        className="bg-purple-600 shadow-md shadow-purple-200"
                         icon={<Ionicons name="videocam" size={20} color="white" />}
                     />
                 </View>
@@ -63,26 +64,25 @@ export default function Home() {
             {/* Secondary Actions */}
             < View className="flex-row gap-4 mb-6" >
                 <TouchableOpacity className="flex-1" onPress={() => router.push('/(main)/history')}>
-                    <Card className="bg-slate-900 border-slate-800 p-4">
-                        <View className="bg-blue-500/20 w-10 h-10 rounded-full items-center justify-center mb-3">
-                            <Ionicons name="time-outline" size={24} color="#60a5fa" />
+                    <Card className="bg-white border-slate-100 p-5 shadow-sm">
+                        <View className="bg-purple-50 w-12 h-12 rounded-full items-center justify-center mb-4 border border-purple-100">
+                            <Ionicons name="time-outline" size={26} color="#9333ea" />
                         </View>
-                        <Text className="text-white font-bold mb-1">History</Text>
-                        <Text className="text-xs text-slate-500">Past assessments</Text>
+                        <Text className="text-slate-900 font-bold text-lg mb-1">History</Text>
+                        <Text className="text-sm text-slate-500">Past assessments</Text>
                     </Card>
                 </TouchableOpacity>
 
                 <TouchableOpacity className="flex-1" onPress={() => router.push('https://www.google.com/maps/search/dermatologist+near+me')}>
-                    <Card className="bg-slate-900 border-slate-800 p-4">
-                        <View className="bg-purple-500/20 w-10 h-10 rounded-full items-center justify-center mb-3">
-                            <Ionicons name="location-outline" size={24} color="#c084fc" />
+                    <Card className="bg-white border-slate-100 p-5 shadow-sm">
+                        <View className="bg-purple-50 w-12 h-12 rounded-full items-center justify-center mb-4 border border-purple-100">
+                            <Ionicons name="location-outline" size={26} color="#9333ea" />
                         </View>
-                        <Text className="text-white font-bold mb-1">Find Doctor</Text>
-                        <Text className="text-xs text-slate-500">Nearby specialists</Text>
+                        <Text className="text-slate-900 font-bold text-lg mb-1">Find Doctor</Text>
+                        <Text className="text-sm text-slate-500">Nearby specialists</Text>
                     </Card>
                 </TouchableOpacity>
             </View >
-            <Navbar />
         </Screen >
     );
 }

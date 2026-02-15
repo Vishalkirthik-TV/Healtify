@@ -315,293 +315,312 @@ export default function AvatarTriage() {
         await sendToBackend(`The affected area is on my ${region}. Please focus your analysis on this body region.`, null, undefined, false);
     };
 
-    if (!permission?.granted) {
-        return <View />;
-    }
-
     return (
-        <Screen className="bg-black">
-            {/* Live Camera Feed (Full Screen) */}
-            {isCameraOn ? (
-                !lockedImageUri && (
-                    <CameraView
-                        ref={cameraRef}
-                        style={StyleSheet.absoluteFill}
-                        facing="back"
-                        zoom={0}
-                    />
-                )
+        <Screen safeArea={false} className="bg-black">
+            {/* Permission Check Overlay */}
+            {!permission?.granted ? (
+                <View style={[StyleSheet.absoluteFill, { backgroundColor: '#000', justifyContent: 'center', alignItems: 'center', padding: 40 }]}>
+                    <View className="bg-purple-900/20 p-8 rounded-full mb-8 border border-purple-500/30">
+                        <Ionicons name="camera" size={64} color="#9333ea" />
+                    </View>
+                    <Text className="text-white text-2xl font-bold mb-3 text-center">Camera Access Required</Text>
+                    <Text className="text-white/60 text-center mb-10 leading-6 text-base">
+                        To use our interactive AI triage, we need access to your camera to see the affected area.
+                    </Text>
+                    <TouchableOpacity
+                        onPress={requestPermission}
+                        className="bg-purple-600 px-10 py-4 rounded-2xl shadow-lg shadow-purple-500/20 active:bg-purple-700"
+                    >
+                        <Text className="text-white font-bold text-lg">Grant Permission</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity onPress={() => router.back()} className="mt-8 p-2">
+                        <Text className="text-white/40 font-medium">Cancel and go back</Text>
+                    </TouchableOpacity>
+                </View>
             ) : (
-                <View style={[StyleSheet.absoluteFill, { backgroundColor: '#111', justifyContent: 'center', alignItems: 'center' }]}>
-                    <Ionicons name="eye-off" size={64} color="#333" />
-                    <Text className="text-white/40 mt-4 font-medium">Camera Disabled (Privacy Mode)</Text>
-                </View>
-            )}
+                <>
+                    {/* Live Camera Feed (Full Screen) */}
+                    {isCameraOn ? (
+                        !lockedImageUri && (
+                            <CameraView
+                                ref={cameraRef}
+                                style={StyleSheet.absoluteFill}
+                                facing="back"
+                                zoom={0}
+                            />
+                        )
+                    ) : (
+                        <View style={[StyleSheet.absoluteFill, { backgroundColor: '#111', justifyContent: 'center', alignItems: 'center' }]}>
+                            <Ionicons name="eye-off" size={64} color="#333" />
+                            <Text className="text-white/40 mt-4 font-medium">Camera Disabled (Privacy Mode)</Text>
+                        </View>
+                    )}
 
-            {/* Locked Image Display */}
-            {lockedImageUri && isCameraOn && (
-                <View style={StyleSheet.absoluteFill}>
-                    <Image
-                        source={{ uri: lockedImageUri }}
-                        style={StyleSheet.absoluteFillObject}
-                        resizeMode="cover"
-                    />
-                    <View className="absolute inset-0 bg-black/20" />
-                </View>
-            )}
+                    {/* Locked Image Display */}
+                    {lockedImageUri && isCameraOn && (
+                        <View style={StyleSheet.absoluteFill}>
+                            <Image
+                                source={{ uri: lockedImageUri }}
+                                style={StyleSheet.absoluteFillObject}
+                                resizeMode="cover"
+                            />
+                            <View className="absolute inset-0 bg-black/20" />
+                        </View>
+                    )}
 
-            {/* Change Area Button (Only when locked) */}
-            {lockedImageUri && (
-                <TouchableOpacity
-                    onPress={resetLockedImage}
-                    className="absolute top-32 right-6 bg-gray-800/80 px-4 py-2 rounded-full border border-gray-600 z-50 shadow-sm"
-                >
-                    <View className="flex-row items-center space-x-2">
-                        <Ionicons name="camera-reverse" size={16} color="white" />
-                        <Text className="text-white text-xs font-bold ml-2">Change Area</Text>
-                    </View>
-                </TouchableOpacity>
-            )}
-
-
-
-            {/* Status Overlay */}
-            <View className="absolute top-24 left-0 right-0 items-center px-6 z-40">
-                <View className="bg-black/60 px-6 py-2 rounded-full mb-2">
-                    <Text className="text-white font-medium text-sm uppercase tracking-wider">
-                        {aiStatus}
-                    </Text>
-                </View>
-            </View>
-
-            {/* Risk Assessment UI & Escalation */}
-            {riskAssessment && (
-                <View className="absolute bottom-40 left-6 right-6">
-                    <View className="bg-gray-900/90 w-full p-4 rounded-3xl border border-white/10 shadow-xl space-y-3">
-                        <View className="flex-row items-center justify-between">
+                    {/* Change Area Button (Only when locked) */}
+                    {lockedImageUri && (
+                        <TouchableOpacity
+                            onPress={resetLockedImage}
+                            className="absolute top-32 right-6 bg-gray-800/80 px-4 py-2 rounded-full border border-gray-600 z-50 shadow-sm"
+                        >
                             <View className="flex-row items-center space-x-2">
-                                <View style={{
-                                    width: 12, height: 12, borderRadius: 6,
-                                    backgroundColor: riskAssessment.risk === 'High' ? '#ef4444' : riskAssessment.risk === 'Moderate' ? '#f59e0b' : '#10b981'
-                                }} />
-                                <Text className="text-white font-bold text-lg ml-2">
-                                    {riskAssessment.risk} Risk
-                                </Text>
+                                <Ionicons name="camera-reverse" size={16} color="white" />
+                                <Text className="text-white text-xs font-bold ml-2">Change Area</Text>
                             </View>
-                            <View className="bg-white/10 px-3 py-1 rounded-full">
-                                <Text className="text-white/80 text-xs font-medium">
-                                    {riskAssessment.confidence}% Confidence
-                                </Text>
-                            </View>
-                        </View>
-
-                        {riskAssessment.redFlags && riskAssessment.redFlags.length > 0 && (
-                            <View className="flex-row flex-wrap gap-2 pt-1 border-t border-white/5">
-                                {riskAssessment.redFlags.map((flag, idx) => (
-                                    <View key={idx} className="bg-red-500/20 px-3 py-1 rounded-full border border-red-500/30">
-                                        <Text className="text-red-400 text-[10px] font-bold uppercase">{flag}</Text>
-                                    </View>
-                                ))}
-                            </View>
-                        )}
-
-                        {/* Escalation Buttons */}
-                        <View className="flex-col space-y-3 pt-2">
-                            {riskAssessment.risk === 'High' ? (
-                                <TouchableOpacity
-                                    className="bg-red-600 py-4 rounded-xl flex-row items-center justify-center"
-                                    onPress={() => {
-                                        router.push({
-                                            pathname: '/(main)/integrated-meeting',
-                                            params: {
-                                                roomId: sessionId,
-                                                summary: riskAssessment.redFlags.join(', '),
-                                                imageURL: publicImageUrl ? `${API_URL}${publicImageUrl}` : ''
-                                            }
-                                        });
-                                    }}
-                                >
-                                    <Ionicons name="videocam" size={24} color="white" className="mr-2" />
-                                    <Text className="text-white font-bold text-lg">Book Teleconsult (Urgent)</Text>
-                                </TouchableOpacity>
-                            ) : (
-                                <TouchableOpacity
-                                    className="bg-teal-600 py-4 rounded-xl flex-row items-center justify-center"
-                                    onPress={() => {
-                                        router.push({
-                                            pathname: '/(main)/integrated-meeting',
-                                            params: {
-                                                roomId: sessionId,
-                                                summary: `General consultation for ${riskAssessment.risk} risk case.`,
-                                                imageURL: publicImageUrl ? `${API_URL}${publicImageUrl}` : ''
-                                            }
-                                        });
-                                    }}
-                                >
-                                    <Ionicons name="videocam" size={24} color="white" className="mr-2" />
-                                    <Text className="text-white font-bold text-lg">Consult Specialist</Text>
-                                </TouchableOpacity>
-                            )}
-
-                            <TouchableOpacity
-                                className="bg-white/10 py-4 rounded-xl items-center"
-                                onPress={resetLockedImage}
-                            >
-                                <Text className="text-white font-bold text-lg">Test New Area</Text>
-                            </TouchableOpacity>
-
-                            {riskAssessment.risk === 'High' && (
-                                <TouchableOpacity
-                                    className="bg-red-600/20 border border-red-500/50 py-3 rounded-2xl items-center shadow-lg"
-                                    onPress={() => speak("Warning: Please contact emergency services immediately if you feel systemically unwell.")}
-                                >
-                                    <Text className="text-red-400 font-bold text-sm">Emergency Alert</Text>
-                                </TouchableOpacity>
-                            )}
-                        </View>
-                    </View>
-                </View>
-            )}
-
-            {/* Condition Suggestion Cards */}
-            {conditionSuggestions && conditionSuggestions.length > 0 && (
-                <View className="absolute bottom-44 left-0 right-0 z-50 px-4">
-                    <View className="bg-black/80 rounded-2xl px-4 py-3 border border-white/10">
-                        <Text className="text-white/90 text-xs font-semibold mb-2 text-center">
-                            Tap the condition that looks closest to yours:
-                        </Text>
-                        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 10 }}>
-                            {conditionSuggestions.map((condition, idx) => (
-                                <TouchableOpacity
-                                    key={idx}
-                                    onPress={() => handleConditionSelect(condition)}
-                                    className="items-center bg-white/10 rounded-xl p-2 border border-white/20"
-                                    style={{ width: 90 }}
-                                    activeOpacity={0.7}
-                                >
-                                    <Image
-                                        source={{ uri: condition.imageUrl }}
-                                        style={{ width: 70, height: 70, borderRadius: 10 }}
-                                        resizeMode="cover"
-                                    />
-                                    <Text className="text-white text-[9px] font-medium mt-1 text-center" numberOfLines={2}>
-                                        {condition.name}
-                                    </Text>
-                                </TouchableOpacity>
-                            ))}
-                        </ScrollView>
-                        <TouchableOpacity onPress={() => setConditionSuggestions(null)} className="mt-2 items-center">
-                            <Text className="text-white/50 text-[10px]">None of these match</Text>
                         </TouchableOpacity>
-                    </View>
-                </View>
-            )}
-            {/* Bottom Controls */}
-            <View className="absolute bottom-12 left-0 right-0 flex-row justify-center items-center space-x-8">
-                <TouchableOpacity
-                    onPress={() => {
-                        const nextState = !isCameraOn;
-                        setIsCameraOn(nextState);
-                        isCameraOnRef.current = nextState;
-                        if (!nextState) {
-                            console.log("Privacy Mode: Camera DISABLED and UNMOUNTED.");
-                            setLockedImageUri(null); // Clear any pending images for full privacy
-                        } else {
-                            console.log("Privacy Mode: Camera ENABLED.");
-                        }
-                    }}
-                    className={`p-4 rounded-full border-2 ${isCameraOn ? 'bg-teal-600/20 border-teal-500/50' : 'bg-red-600/20 border-red-500/50'}`}
-                >
-                    <Ionicons name={isCameraOn ? "camera" : "camera-outline"} size={28} color={isCameraOn ? "#2dd4bf" : "#ef4444"} />
-                </TouchableOpacity>
+                    )}
 
-                <View className="items-center">
-                    {/* Body Selector Button (above mic) */}
-                    <TouchableOpacity
-                        onPress={() => setShowBodySelector(true)}
-                        className="mb-2 bg-blue-600/20 border border-blue-500/40 p-2 rounded-full"
-                        activeOpacity={0.7}
-                    >
-                        <Ionicons name="body" size={18} color="#60a5fa" />
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                        onPressIn={startRecording}
-                        onPressOut={stopRecording}
-                        activeOpacity={0.8}
-                        style={[
-                            styles.micButton,
-                            isListening ? styles.micActive : styles.micInactive
-                        ]}
-                    >
-                        <Ionicons name={isListening ? "mic" : "mic-off"} size={32} color="white" />
-                    </TouchableOpacity>
-                    <Text className="text-white/80 text-[10px] mt-2 font-medium">
-                        {isListening ? "Release to Send" : "Hold to Speak"}
-                    </Text>
-                </View>
 
-                <TouchableOpacity
-                    onPress={() => {
-                        router.push({
-                            pathname: '/(main)/integrated-meeting',
-                            params: {
-                                roomId: sessionId,
-                                summary: riskAssessment ? riskAssessment.redFlags.join(', ') : 'General Consultation',
-                                imageURL: publicImageUrl ? `${API_URL}${publicImageUrl}` : '',
-                                history: JSON.stringify(chatHistory)
-                            }
-                        });
-                    }}
-                    className="p-4 rounded-full border-2 bg-indigo-600/20 border-indigo-500/50"
-                >
-                    <Ionicons name="videocam" size={28} color="#818cf8" />
-                </TouchableOpacity>
-            </View>
 
-            {/* Avatar Overlay */}
-            <View className="absolute top-16 left-6 z-40 pointer-events-none" style={{ width: 120, height: 120 }}>
-                <AvatarView isSpeaking={isSpeaking} />
-            </View>
-
-            {/* Top Bar Actions */}
-            <View className="absolute top-12 left-6 right-6 flex-row justify-between items-center z-50">
-                <TouchableOpacity onPress={() => router.back()} className="bg-black/50 p-2.5 rounded-full border border-white/10 shadow-lg">
-                    <Ionicons name="arrow-back" size={24} color="white" />
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                    onPress={handleEnd}
-                    className="bg-red-600 px-6 py-2.5 rounded-full flex-row items-center space-x-2 border border-red-400 shadow-lg active:bg-red-700"
-                >
-                    <Ionicons name="close-circle" size={22} color="white" />
-                    <Text className="text-white font-bold text-lg">End</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity onPress={() => router.push('/profile')} className="bg-black/50 p-2.5 rounded-full border border-white/10 shadow-lg">
-                    <Ionicons name="person" size={24} color="white" />
-                </TouchableOpacity>
-            </View>
-
-            {/* Live Captions Overlay - Moved to Bottom (fixed position) */}
-            {
-                captionText && (
-                    <View className="absolute bottom-40 left-6 right-6 items-center z-50 pointer-events-none">
-                        <View className="bg-black/80 px-4 py-3 rounded-xl border border-white/5 shadow-sm backdrop-blur-sm">
-                            <Text className="text-white text-base font-normal text-center leading-5 opacity-90">
-                                {captionText}
+                    {/* Status Overlay */}
+                    <View className="absolute top-24 left-0 right-0 items-center px-6 z-40">
+                        <View className="bg-white/90 px-6 py-2 rounded-full mb-2 shadow-sm border border-slate-100">
+                            <Text className="text-slate-900 font-bold text-sm uppercase tracking-wider">
+                                {aiStatus}
                             </Text>
                         </View>
                     </View>
-                )
-            }
 
-            {/* Body Selector Modal */}
-            <BodySelectorModal
-                visible={showBodySelector}
-                onClose={() => setShowBodySelector(false)}
-                onConfirm={handleBodyRegionSelect}
-            />
+                    {/* Risk Assessment UI & Escalation */}
+                    {riskAssessment && (
+                        <View className="absolute bottom-40 left-6 right-6">
+                            <View className="bg-white/95 w-full p-5 rounded-3xl border border-slate-100 shadow-2xl space-y-4">
+                                <View className="flex-row items-center justify-between">
+                                    <View className="flex-row items-center space-x-2">
+                                        <View style={{
+                                            width: 12, height: 12, borderRadius: 6,
+                                            backgroundColor: riskAssessment.risk === 'High' ? '#ef4444' : riskAssessment.risk === 'Moderate' ? '#f59e0b' : '#10b981'
+                                        }} />
+                                        <Text className="text-slate-900 font-bold text-xl ml-2">
+                                            {riskAssessment.risk} Risk
+                                        </Text>
+                                    </View>
+                                    <View className="bg-slate-100 px-3 py-1 rounded-full border border-slate-200">
+                                        <Text className="text-slate-600 text-xs font-semibold">
+                                            {riskAssessment.confidence}% Confidence
+                                        </Text>
+                                    </View>
+                                </View>
 
+                                {riskAssessment.redFlags && riskAssessment.redFlags.length > 0 && (
+                                    <View className="flex-row flex-wrap gap-2 pt-1 border-t border-slate-50">
+                                        {riskAssessment.redFlags.map((flag, idx) => (
+                                            <View key={idx} className="bg-red-50 px-3 py-1 rounded-full border border-red-100">
+                                                <Text className="text-red-600 text-[10px] font-bold uppercase">{flag}</Text>
+                                            </View>
+                                        ))}
+                                    </View>
+                                )}
+
+                                {/* Escalation Buttons */}
+                                <View className="flex-col space-y-3 pt-2">
+                                    {riskAssessment.risk === 'High' ? (
+                                        <TouchableOpacity
+                                            className="bg-red-600 py-4 rounded-xl flex-row items-center justify-center shadow-md shadow-red-200"
+                                            onPress={() => {
+                                                router.push({
+                                                    pathname: '/(main)/integrated-meeting',
+                                                    params: {
+                                                        roomId: sessionId,
+                                                        summary: riskAssessment.redFlags.join(', '),
+                                                        imageURL: publicImageUrl ? `${API_URL}${publicImageUrl}` : ''
+                                                    }
+                                                });
+                                            }}
+                                        >
+                                            <Ionicons name="videocam" size={24} color="white" className="mr-2" />
+                                            <Text className="text-white font-bold text-lg">Book Teleconsult (Urgent)</Text>
+                                        </TouchableOpacity>
+                                    ) : (
+                                        <TouchableOpacity
+                                            className="bg-purple-600 py-4 rounded-xl flex-row items-center justify-center shadow-md shadow-purple-200"
+                                            onPress={() => {
+                                                router.push({
+                                                    pathname: '/(main)/integrated-meeting',
+                                                    params: {
+                                                        roomId: sessionId,
+                                                        summary: `General consultation for ${riskAssessment.risk} risk case.`,
+                                                        imageURL: publicImageUrl ? `${API_URL}${publicImageUrl}` : ''
+                                                    }
+                                                });
+                                            }}
+                                        >
+                                            <Ionicons name="videocam" size={24} color="white" className="mr-2" />
+                                            <Text className="text-white font-bold text-lg">Consult Specialist</Text>
+                                        </TouchableOpacity>
+                                    )}
+
+                                    <TouchableOpacity
+                                        className="bg-slate-100 py-4 rounded-xl items-center border border-slate-200"
+                                        onPress={resetLockedImage}
+                                    >
+                                        <Text className="text-slate-700 font-bold text-lg">Test New Area</Text>
+                                    </TouchableOpacity>
+
+                                    {riskAssessment.risk === 'High' && (
+                                        <TouchableOpacity
+                                            className="bg-red-600/20 border border-red-500/50 py-3 rounded-2xl items-center shadow-lg"
+                                            onPress={() => speak("Warning: Please contact emergency services immediately if you feel systemically unwell.")}
+                                        >
+                                            <Text className="text-red-400 font-bold text-sm">Emergency Alert</Text>
+                                        </TouchableOpacity>
+                                    )}
+                                </View>
+                            </View>
+                        </View>
+                    )}
+
+                    {/* Condition Suggestion Cards */}
+                    {conditionSuggestions && conditionSuggestions.length > 0 && (
+                        <View className="absolute bottom-44 left-0 right-0 z-50 px-4">
+                            <View className="bg-white rounded-2xl px-4 py-4 border border-slate-100 shadow-2xl">
+                                <Text className="text-slate-800 text-sm font-bold mb-3 text-center">
+                                    Tap the condition that looks closest:
+                                </Text>
+                                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 12 }}>
+                                    {conditionSuggestions.map((condition, idx) => (
+                                        <TouchableOpacity
+                                            key={idx}
+                                            onPress={() => handleConditionSelect(condition)}
+                                            className="items-center bg-slate-50 rounded-xl p-2 border border-slate-100 shadow-sm"
+                                            style={{ width: 100 }}
+                                            activeOpacity={0.7}
+                                        >
+                                            <Image
+                                                source={{ uri: condition.imageUrl }}
+                                                style={{ width: 80, height: 80, borderRadius: 12 }}
+                                                resizeMode="cover"
+                                            />
+                                            <Text className="text-slate-900 text-[10px] font-bold mt-2 text-center" numberOfLines={2}>
+                                                {condition.name}
+                                            </Text>
+                                        </TouchableOpacity>
+                                    ))}
+                                </ScrollView>
+                                <TouchableOpacity onPress={() => setConditionSuggestions(null)} className="mt-3 items-center">
+                                    <Text className="text-slate-400 text-[11px] font-medium">None of these match</Text>
+                                </TouchableOpacity>
+                            </View>
+                        </View>
+                    )}
+                    {/* Bottom Controls */}
+                    <View className="absolute bottom-12 left-0 right-0 flex-row justify-center items-center space-x-8">
+                        <TouchableOpacity
+                            onPress={() => {
+                                const nextState = !isCameraOn;
+                                setIsCameraOn(nextState);
+                                isCameraOnRef.current = nextState;
+                                if (!nextState) {
+                                    console.log("Privacy Mode: Camera DISABLED and UNMOUNTED.");
+                                    setLockedImageUri(null); // Clear any pending images for full privacy
+                                } else {
+                                    console.log("Privacy Mode: Camera ENABLED.");
+                                }
+                            }}
+                            className={`p-4 rounded-full border-2 ${isCameraOn ? 'bg-purple-100 border-purple-200' : 'bg-red-50 border-red-100'}`}
+                        >
+                            <Ionicons name={isCameraOn ? "camera" : "camera-outline"} size={28} color={isCameraOn ? "#9333ea" : "#ef4444"} />
+                        </TouchableOpacity>
+
+                        <View className="items-center">
+                            {/* Body Selector Button (above mic) */}
+                            <TouchableOpacity
+                                onPress={() => setShowBodySelector(true)}
+                                className="mb-2 bg-purple-100 border border-purple-200 p-2.5 rounded-full shadow-sm"
+                                activeOpacity={0.7}
+                            >
+                                <Ionicons name="body" size={20} color="#9333ea" />
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                                onPressIn={startRecording}
+                                onPressOut={stopRecording}
+                                activeOpacity={0.8}
+                                style={[
+                                    styles.micButton,
+                                    isListening ? styles.micActive : styles.micInactive
+                                ]}
+                            >
+                                <Ionicons name={isListening ? "mic" : "mic-off"} size={32} color="white" />
+                            </TouchableOpacity>
+                            <Text className="text-white/80 text-[10px] mt-2 font-medium">
+                                {isListening ? "Release to Send" : "Hold to Speak"}
+                            </Text>
+                        </View>
+
+                        <TouchableOpacity
+                            onPress={() => {
+                                router.push({
+                                    pathname: '/(main)/integrated-meeting',
+                                    params: {
+                                        roomId: sessionId,
+                                        summary: riskAssessment ? riskAssessment.redFlags.join(', ') : 'General Consultation',
+                                        imageURL: publicImageUrl ? `${API_URL}${publicImageUrl}` : '',
+                                        history: JSON.stringify(chatHistory)
+                                    }
+                                });
+                            }}
+                            className="p-4 rounded-full border-2 bg-purple-100 border-purple-200 shadow-sm"
+                        >
+                            <Ionicons name="videocam" size={28} color="#9333ea" />
+                        </TouchableOpacity>
+                    </View>
+
+                    {/* Avatar Overlay */}
+                    <View className="absolute top-16 left-6 z-40 pointer-events-none" style={{ width: 120, height: 120 }}>
+                        <AvatarView isSpeaking={isSpeaking} />
+                    </View>
+
+                    {/* Top Bar Actions */}
+                    <View className="absolute top-12 left-6 right-6 flex-row justify-between items-center z-50">
+                        <TouchableOpacity onPress={() => router.back()} className="bg-black/50 p-2.5 rounded-full border border-white/10 shadow-lg">
+                            <Ionicons name="arrow-back" size={24} color="white" />
+                        </TouchableOpacity>
+
+                        <TouchableOpacity
+                            onPress={handleEnd}
+                            className="bg-red-600 px-6 py-2.5 rounded-full flex-row items-center space-x-2 border border-red-400 shadow-lg active:bg-red-700"
+                        >
+                            <Ionicons name="close-circle" size={22} color="white" />
+                            <Text className="text-white font-bold text-lg">End</Text>
+                        </TouchableOpacity>
+
+                        <TouchableOpacity onPress={() => router.push('/profile')} className="bg-black/50 p-2.5 rounded-full border border-white/10 shadow-lg">
+                            <Ionicons name="person" size={24} color="white" />
+                        </TouchableOpacity>
+                    </View>
+
+                    {/* Live Captions Overlay - Moved to Bottom (fixed position) */}
+                    {
+                        captionText && (
+                            <View className="absolute bottom-40 left-6 right-6 items-center z-50 pointer-events-none">
+                                <View className="bg-black/80 px-4 py-3 rounded-xl border border-white/5 shadow-sm backdrop-blur-sm">
+                                    <Text className="text-white text-base font-normal text-center leading-5 opacity-90">
+                                        {captionText}
+                                    </Text>
+                                </View>
+                            </View>
+                        )
+                    }
+
+                    {/* Body Selector Modal */}
+                    <BodySelectorModal
+                        visible={showBodySelector}
+                        onClose={() => setShowBodySelector(false)}
+                        onConfirm={handleBodyRegionSelect}
+                    />
+                </>
+            )}
         </Screen >
     );
 }
@@ -622,11 +641,11 @@ const styles = StyleSheet.create({
     },
     micActive: {
         backgroundColor: '#ef4444',
-        borderColor: '#fca5a5',
+        borderColor: '#fee2e2',
         transform: [{ scale: 1.1 }]
     },
     micInactive: {
-        backgroundColor: '#0f766e',
-        borderColor: '#14b8a6',
+        backgroundColor: '#9333ea',
+        borderColor: '#f3e8ff',
     }
 });
