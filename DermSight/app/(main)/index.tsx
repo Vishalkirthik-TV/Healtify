@@ -83,6 +83,26 @@ export default function Home() {
                     </Card>
                 </TouchableOpacity>
             </View >
+
+            {/* Tertiary Action - Health Insights (1x2 Rectangular Card) */}
+            <TouchableOpacity onPress={() => router.push('/(main)/history')}>
+                <Card className="bg-white border-slate-100 p-6 shadow-sm overflow-hidden mb-6">
+                    <View className="flex-row items-center justify-between">
+                        <View className="flex-1 pr-4">
+                            <View className="flex-row items-center mb-2">
+                                <View className="bg-purple-50 p-2 rounded-lg border border-purple-100 mr-3">
+                                    <Ionicons name="trending-up-outline" size={20} color="#9333ea" />
+                                </View>
+                                <Text className="text-slate-900 font-bold text-xl">Smart Health Insights</Text>
+                            </View>
+                            <Text className="text-slate-500 text-sm leading-5">
+                                View personalized skin care tips and track your condition's progress over time.
+                            </Text>
+                        </View>
+                        <Ionicons name="chevron-forward" size={24} color="#e2e8f0" />
+                    </View>
+                </Card>
+            </TouchableOpacity>
         </Screen >
     );
 }
