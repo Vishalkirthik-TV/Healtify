@@ -338,7 +338,11 @@ export default function AvatarTriage() {
                     </TouchableOpacity>
                 </View>
             ) : (
-                <>
+                <View style={StyleSheet.absoluteFill}>
+                    {/* Top/Bottom Gradients for Premium Feel */}
+                    <View className="absolute top-0 left-0 right-0 h-40 bg-black/40 z-10" style={{ opacity: 0.6 }} />
+                    <View className="absolute bottom-0 left-0 right-0 h-48 bg-black/60 z-10" style={{ opacity: 0.8 }} />
+
                     {/* Live Camera Feed (Full Screen) */}
                     {isCameraOn ? (
                         !lockedImageUri && (
@@ -383,12 +387,37 @@ export default function AvatarTriage() {
 
 
 
-                    {/* Status Overlay */}
-                    <View className="absolute top-24 left-0 right-0 items-center px-6 z-40">
-                        <View className="bg-white/90 px-6 py-2 rounded-full mb-2 shadow-sm border border-slate-100">
-                            <Text className="text-slate-900 font-bold text-sm uppercase tracking-wider">
-                                {aiStatus}
+                    {/* Top Bar - Medical Design */}
+                    <View className="absolute top-14 left-6 right-6 flex-row justify-between items-center z-50">
+                        <TouchableOpacity onPress={() => router.back()} className="bg-white/10 p-2.5 rounded-full border border-white/20 backdrop-blur-md">
+                            <Ionicons name="arrow-back" size={24} color="white" />
+                        </TouchableOpacity>
+                        <Text className="text-white font-bold text-xl tracking-tight">Live Triage</Text>
+                        <TouchableOpacity onPress={() => router.push('/profile')} className="bg-white/10 p-2.5 rounded-full border border-white/20 backdrop-blur-md">
+                            <Ionicons name="person" size={24} color="white" />
+                        </TouchableOpacity>
+                    </View>
+
+                    {/* Session Status & Avatar Bubble (Repositioned) */}
+                    <View className="absolute top-32 left-6 right-6 flex-row-reverse justify-between items-start z-40">
+                        {/* Session Status Indicator (Now on the Right) */}
+                        <View className="bg-white/10 px-4 py-2 rounded-full border border-white/20 backdrop-blur-md flex-row items-center space-x-2">
+                            <View className="w-2 h-2 rounded-full bg-green-500 shadow-sm" style={{ shadowColor: '#22c55e', shadowRadius: 4 }} />
+                            <Text className="text-white/80 font-bold text-[10px] uppercase tracking-widest ml-1">
+                                Session Active
                             </Text>
+                        </View>
+
+                        {/* Assistant Avatar (Now on the Left) */}
+                        <View className="items-center">
+                            <View className="rounded-full shadow-2xl border-[1.5px] border-white/40 overflow-hidden bg-white/5" style={{ padding: 4 }}>
+                                <AvatarView isSpeaking={isSpeaking} />
+                            </View>
+                            {isSpeaking && (
+                                <View className="mt-2 bg-purple-500/80 px-2 py-0.5 rounded-md border border-purple-400/30">
+                                    <Text className="text-white text-[8px] font-bold uppercase tracking-tighter">Assistant Speaking</Text>
+                                </View>
+                            )}
                         </View>
                     </View>
 
@@ -514,34 +543,30 @@ export default function AvatarTriage() {
                             </View>
                         </View>
                     )}
-                    {/* Bottom Controls */}
-                    <View className="absolute bottom-12 left-0 right-0 flex-row justify-center items-center space-x-8">
+                    {/* Main Clinical Action Bar (Mic Centric + Body Selector) */}
+                    <View className="absolute bottom-12 left-0 right-0 z-50 flex-row justify-center items-center space-x-8 px-6">
+                        {/* Privacy / Camera Toggle */}
                         <TouchableOpacity
                             onPress={() => {
                                 const nextState = !isCameraOn;
                                 setIsCameraOn(nextState);
                                 isCameraOnRef.current = nextState;
-                                if (!nextState) {
-                                    console.log("Privacy Mode: Camera DISABLED and UNMOUNTED.");
-                                    setLockedImageUri(null); // Clear any pending images for full privacy
-                                } else {
-                                    console.log("Privacy Mode: Camera ENABLED.");
-                                }
                             }}
-                            className={`p-4 rounded-full border-2 ${isCameraOn ? 'bg-purple-100 border-purple-200' : 'bg-red-50 border-red-100'}`}
+                            className="p-4 rounded-full bg-white/10 border border-white/20 backdrop-blur-md shadow-lg"
                         >
-                            <Ionicons name={isCameraOn ? "camera" : "camera-outline"} size={28} color={isCameraOn ? "#9333ea" : "#ef4444"} />
+                            <Ionicons name={isCameraOn ? "camera" : "camera-outline"} size={22} color="white" />
                         </TouchableOpacity>
 
+                        {/* Body Selector (Restored to main bar) */}
+                        <TouchableOpacity
+                            onPress={() => setShowBodySelector(true)}
+                            className="p-4 rounded-full bg-white/10 border border-white/20 backdrop-blur-md shadow-lg"
+                        >
+                            <Ionicons name="accessibility-outline" size={22} color="white" />
+                        </TouchableOpacity>
+
+                        {/* Primary Mic Interaction */}
                         <View className="items-center">
-                            {/* Body Selector Button (above mic) */}
-                            <TouchableOpacity
-                                onPress={() => setShowBodySelector(true)}
-                                className="mb-2 bg-purple-100 border border-purple-200 p-2.5 rounded-full shadow-sm"
-                                activeOpacity={0.7}
-                            >
-                                <Ionicons name="body" size={20} color="#9333ea" />
-                            </TouchableOpacity>
                             <TouchableOpacity
                                 onPressIn={startRecording}
                                 onPressOut={stopRecording}
@@ -551,13 +576,14 @@ export default function AvatarTriage() {
                                     isListening ? styles.micActive : styles.micInactive
                                 ]}
                             >
-                                <Ionicons name={isListening ? "mic" : "mic-off"} size={32} color="white" />
+                                <Ionicons name={isListening ? "mic" : "mic-off"} size={36} color="white" />
                             </TouchableOpacity>
-                            <Text className="text-white/80 text-[10px] mt-2 font-medium">
-                                {isListening ? "Release to Send" : "Hold to Speak"}
+                            <Text className="text-white/90 text-xs mt-5 font-extrabold uppercase tracking-[2px] text-center shadow-sm">
+                                {isListening ? "Listening..." : "Hold to Speak"}
                             </Text>
                         </View>
 
+                        {/* Meeting / Specialist Link */}
                         <TouchableOpacity
                             onPress={() => {
                                 router.push({
@@ -570,48 +596,30 @@ export default function AvatarTriage() {
                                     }
                                 });
                             }}
-                            className="p-4 rounded-full border-2 bg-purple-100 border-purple-200 shadow-sm"
+                            className="p-4 rounded-full bg-white/10 border border-white/20 backdrop-blur-md shadow-lg"
                         >
-                            <Ionicons name="videocam" size={28} color="#9333ea" />
+                            <Ionicons name="videocam" size={22} color="white" />
                         </TouchableOpacity>
                     </View>
 
-                    {/* Avatar Overlay */}
-                    <View className="absolute top-16 left-6 z-40 pointer-events-none" style={{ width: 120, height: 120 }}>
-                        <AvatarView isSpeaking={isSpeaking} />
-                    </View>
-
-                    {/* Top Bar Actions */}
-                    <View className="absolute top-12 left-6 right-6 flex-row justify-between items-center z-50">
-                        <TouchableOpacity onPress={() => router.back()} className="bg-black/50 p-2.5 rounded-full border border-white/10 shadow-lg">
-                            <Ionicons name="arrow-back" size={24} color="white" />
-                        </TouchableOpacity>
-
-                        <TouchableOpacity
-                            onPress={handleEnd}
-                            className="bg-red-600 px-6 py-2.5 rounded-full flex-row items-center space-x-2 border border-red-400 shadow-lg active:bg-red-700"
-                        >
-                            <Ionicons name="close-circle" size={22} color="white" />
-                            <Text className="text-white font-bold text-lg">End</Text>
-                        </TouchableOpacity>
-
-                        <TouchableOpacity onPress={() => router.push('/profile')} className="bg-black/50 p-2.5 rounded-full border border-white/10 shadow-lg">
-                            <Ionicons name="person" size={24} color="white" />
-                        </TouchableOpacity>
-                    </View>
-
-                    {/* Live Captions Overlay - Moved to Bottom (fixed position) */}
-                    {
-                        captionText && (
-                            <View className="absolute bottom-40 left-6 right-6 items-center z-50 pointer-events-none">
-                                <View className="bg-black/80 px-4 py-3 rounded-xl border border-white/5 shadow-sm backdrop-blur-sm">
-                                    <Text className="text-white text-base font-normal text-center leading-5 opacity-90">
-                                        {captionText}
+                    {/* Clinical Guidance Glass Card (Pixel Perfect Refinement) */}
+                    <View className="absolute bottom-48 left-6 right-6 overflow-hidden rounded-[32px] border border-white/20 bg-black/10 backdrop-blur-3xl shadow-2xl z-40">
+                        <View className="px-8 py-7 items-center">
+                            <Text className="text-white/60 text-[11px] font-bold uppercase tracking-[3px] mb-4 text-center">
+                                {isListening ? "Listening..." : "Clinical Assistant"}
+                            </Text>
+                            <Text className="text-white text-[22px] font-bold text-center leading-8 mb-5">
+                                {captionText || "How can I help? Describe your symptoms clearly."}
+                            </Text>
+                            {!captionText && !isListening && (
+                                <View className="px-4 py-1.5 rounded-full border border-white/20 bg-white/5">
+                                    <Text className="text-white/40 text-[10px] font-extrabold uppercase tracking-[2px]">
+                                        Point camera at affected area
                                     </Text>
                                 </View>
-                            </View>
-                        )
-                    }
+                            )}
+                        </View>
+                    </View>
 
                     {/* Body Selector Modal */}
                     <BodySelectorModal
@@ -619,7 +627,7 @@ export default function AvatarTriage() {
                         onClose={() => setShowBodySelector(false)}
                         onConfirm={handleBodyRegionSelect}
                     />
-                </>
+                </View>
             )}
         </Screen >
     );
@@ -627,25 +635,25 @@ export default function AvatarTriage() {
 
 const styles = StyleSheet.create({
     micButton: {
-        width: 80,
-        height: 80,
-        borderRadius: 40,
+        width: 86,
+        height: 86,
+        borderRadius: 43,
         justifyContent: 'center',
         alignItems: 'center',
-        borderWidth: 4,
-        elevation: 5,
+        borderWidth: 6,
+        elevation: 8,
         shadowColor: '#000',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.3,
-        shadowRadius: 4,
+        shadowOffset: { width: 0, height: 6 },
+        shadowOpacity: 0.4,
+        shadowRadius: 8,
     },
     micActive: {
         backgroundColor: '#ef4444',
-        borderColor: '#fee2e2',
+        borderColor: '#fff',
         transform: [{ scale: 1.1 }]
     },
     micInactive: {
         backgroundColor: '#9333ea',
-        borderColor: '#f3e8ff',
+        borderColor: '#fff',
     }
 });

@@ -151,16 +151,22 @@ const AvatarView: React.FC<AvatarViewProps> = ({ isSpeaking }) => {
 
 const styles = StyleSheet.create({
   container: {
-    width: 150, // Fixed size circle/box
-    height: 150,
-    borderRadius: 75,
+    width: 100,
+    height: 100,
+    borderRadius: 50,
     overflow: 'hidden',
     borderWidth: 2,
-    borderColor: 'transparent',
-    backgroundColor: 'transparent',
+    borderColor: 'rgba(255, 255, 255, 0.4)',
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    shadowColor: '#a855f7', // Subtle purple glow
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.5,
+    shadowRadius: 15,
+    elevation: 15,
   },
   webview: {
     backgroundColor: 'transparent',
+    flex: 1,
   },
 });
 

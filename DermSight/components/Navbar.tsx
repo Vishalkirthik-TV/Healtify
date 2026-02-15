@@ -17,7 +17,7 @@ export function Navbar() {
     const insets = useSafeAreaInsets();
 
     return (
-        <View style={[styles.container, { paddingBottom: Math.max(insets.bottom, 12) + 8 }]}>
+        <View style={[styles.container, { bottom: Math.max(insets.bottom, 24) }]}>
             {tabs.map((tab) => {
                 const isActive = pathname === tab.path || (tab.path === '/(main)' && pathname === '/');
                 return (
@@ -29,7 +29,7 @@ export function Navbar() {
                         <Ionicons
                             name={isActive ? (tab.icon as any) : (`${tab.icon}-outline` as any)}
                             size={24}
-                            color={isActive ? '#9333ea' : '#94a3b8'}
+                            color={isActive ? '#9333ea' : '#64748b'}
                         />
                         <Text style={[styles.label, isActive && styles.activeLabel]}>
                             {tab.name}
@@ -43,18 +43,22 @@ export function Navbar() {
 
 const styles = StyleSheet.create({
     container: {
+        position: 'absolute',
+        left: 24,
+        right: 24,
         flexDirection: 'row',
-        backgroundColor: '#ffffff',
-        borderTopWidth: 1,
-        borderTopColor: '#f1f5f9',
-        paddingTop: 12,
+        backgroundColor: 'rgba(255, 255, 255, 0.95)',
+        borderRadius: 40,
+        paddingVertical: 14,
         justifyContent: 'space-around',
         alignItems: 'center',
-        elevation: 20,
+        elevation: 15,
         shadowColor: '#000',
-        shadowOffset: { width: 0, height: -12 },
-        shadowOpacity: 0.08,
-        shadowRadius: 16,
+        shadowOffset: { width: 0, height: 10 },
+        shadowOpacity: 0.12,
+        shadowRadius: 20,
+        borderWidth: 1,
+        borderColor: 'rgba(241, 245, 249, 0.8)',
     },
     tab: {
         alignItems: 'center',
