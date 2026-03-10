@@ -4,6 +4,7 @@ const mongoose = require('mongoose');
 const multer = require('multer');
 const cors = require('cors');
 const fs = require('fs');
+const axios = require('axios');
 const { GoogleGenerativeAI } = require("@google/generative-ai");
 
 const app = express();
@@ -20,6 +21,9 @@ app.use(express.json());
 
 // Configure Multer
 const upload = multer({ dest: 'uploads/' });
+
+// Serve uploads statically for sharing
+app.use('/uploads', express.static('uploads'));
 
 // Initialize Gemini
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
@@ -102,12 +106,36 @@ app.get('/', (req, res) => {
     res.send('DermSight Backend (Gemini Powered) is running');
 });
 
+// Image proxy - serves external images through our server for React Native compatibility
+app.get('/api/proxy-image', async (req, res) => {
+    const { url } = req.query;
+    if (!url) return res.status(400).send('Missing url parameter');
+    try {
+        const response = await axios.get(url, {
+            responseType: 'arraybuffer',
+            timeout: 5000,
+            headers: {
+                'User-Agent': 'DermSightApp/1.0 (https://dermsight.app; contact@dermsight.app)'
+            }
+        });
+        const contentType = response.headers['content-type'] || 'image/jpeg';
+        res.set('Content-Type', contentType);
+        res.set('Cache-Control', 'public, max-age=86400'); // Cache 24h
+        res.send(Buffer.from(response.data));
+    } catch (err) {
+        console.error('[ProxyImage] Failed:', err.message);
+        res.status(502).send('Image fetch failed');
+    }
+});
+
 // Routes
 const chatRoute = require('./routes/chat');
 const authRoute = require('./routes/auth');
+const emergencyRoute = require('./routes/emergency');
 
 app.use('/api', chatRoute);
 app.use('/api/auth', authRoute);
+app.use('/api/emergency', emergencyRoute); // Emergency Services
 
 app.listen(port, () => {
     console.log(`Server running on http://localhost:${port}`);

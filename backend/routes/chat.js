@@ -5,6 +5,7 @@ const multer = require('multer');
 const fs = require('fs');
 const { GoogleGenerativeAI } = require("@google/generative-ai");
 const User = require('../models/User');
+const { fetchConditionImages } = require('../utils/conditionImages');
 
 const upload = multer({ dest: 'uploads/' });
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
@@ -39,6 +40,7 @@ router.post('/chat', upload.fields([{ name: 'image', maxCount: 1 }, { name: 'aud
 
         // Initialize session if new
         if (!chatSessions[sessionId]) {
+            console.log(`[Chat] Initializing new session: ${sessionId}`);
             const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
             chatSessions[sessionId] = {
                 chat: model.startChat({
@@ -48,52 +50,61 @@ router.post('/chat', upload.fields([{ name: 'image', maxCount: 1 }, { name: 'aud
                             parts: [{
                                 text: `
                                 You are "DermSight AI", a compassionate and expert dermatologist companion.
-                                Your primary goal is to triage skin conditions using the patient's medical context and the current symptoms they present (via images, audio, or text).
-                                
-                                ### PATIENT DATABASE CONTEXT:
-                                ${historyPrompt}
+                                Your primary goal is to triage skin conditions using the patient's medical context and the current symptoms they present.
                                 
                                 ### OPERATIONAL RULES:
-                                1. **Context Awareness**: Use the "Patient Medical History" and "Medical Report Context" above to personalize your questions and assessments.
-                                2. **Record Summary**: If the patient asks "What do you know about my history?" or "What's in my report?", provide a concise summary based ONLY on the context provided above.
-                                3. **Single Interaction**: Ask ONE clear, relevant question at a time to keep the triage focused.
-                                4. **Multimodal Analysis**: Silently analyze any provided images or audio. If an image shows a lesion and the medical history mentions "Eczema", consider this connection in your Assessment, but do not provide a definitive diagnosis.
-                                5. **JSON Output**: You MUST ALWAYS respond in valid JSON format according to the schema below.
-                                
-                                ### JSON SCHEMA:
-                                {
-                                  "reply": "Conversational text to be spoken to the patient.",
-                                  "assessment": {
-                                    "risk": "Low" | "Moderate" | "High",
-                                    "confidence": number (0-100),
-                                    "redFlags": string[],
-                                    "escalate": boolean
-                                  }
-                                }
-
-                                IMPORTANT: If the user provides a clinical report, leverage its findings (e.g., specific medications or past diagnoses) to ask more targeted triage questions.
+                                1. **Context Awareness**: Use the "Patient Medical History" and "Medical Report Context" provided to personalize your assessments.
+                                2. **Record Summary**: If the patient asks about their history or reports, provide a concise summary based ONLY on the provided context.
+                                3. **Single Interaction**: Ask ONE clear, relevant question at a time.
+                                4. **Multimodal Analysis**: Silently analyze provided images or audio. 
+                                 5. **Language Stability**: You are an English-first assistant. ALWAYS default to English. Only switch to another language (e.g., Hindi, Spanish) if the user's input is clearly, intentionally, and predominantly in that language. Ignore ambiguous background noise, fragments, or static that might mimic other languages. If the user switches back to English, follow them immediately.
+                                 6. **JSON Output**: You MUST ALWAYS respond in valid JSON format.
+                                 
+                                 ### JSON SCHEMA:
+                                 {
+                                   "reply": "Conversational text in the detected language.",
+                                   "language": "ISO 639-1 code (e.g., 'hi', 'es', 'en')",
+                                   "assessment": {
+                                     "risk": "Low" | "Moderate" | "High",
+                                     "confidence": number,
+                                     "redFlags": string[],
+                                     "escalate": boolean
+                                   },
+                                   "suggestedConditions": ["condition1", "condition2", "condition3"]
+                                 }
+                                 
+                                 ### CONDITION SUGGESTIONS RULE:
+                                 When you first analyze a skin image AND the diagnosis is not 100% certain, populate **suggestedConditions** with exactly 3 possible dermatological condition names. Use SHORT, SIMPLE names that match Wikipedia article titles (e.g. "Eczema", "Psoriasis", "Contact dermatitis"). Do NOT use parenthetical descriptions like "Eczema (Atopic Dermatitis)". Only include this field when an image is present and you can identify possible conditions. Do NOT include it for follow-up text-only questions.
                             ` }]
                         },
                         {
                             role: "model",
-                            parts: [{ text: JSON.stringify({ reply: "Understood. I have reviewed your medical history context. I am ready to triage. Please show me the affected area or describe your symptoms." }) }]
+                            parts: [{ text: JSON.stringify({ reply: "Understood. I'm ready to assist you." }) }]
                         }
                     ],
                     generationConfig: {
                         maxOutputTokens: 250,
                     },
                 }),
-                lastActive: Date.now()
+                lastActive: Date.now(),
+                hasContext: false
             };
         }
 
         const chatSession = chatSessions[sessionId].chat;
+        const parts = [];
+
+        // BUNDLE CONTEXT: If userId is now available but context hasn't been injected, prefix it to this message
+        if (userId && !chatSessions[sessionId].hasContext && historyPrompt) {
+            console.log(`[Chat] Bundling medical context into session ${sessionId}`);
+            parts.push({ text: `SYSTEM: Patient Medical History & Report Context found. Use this for all future responses:\n${historyPrompt}\n\nUser Input following below:` });
+            chatSessions[sessionId].hasContext = true;
+        }
         let mediaPart;
 
         const imageFile = req.files?.['image']?.[0];
         const audioFile = req.files?.['audio']?.[0];
 
-        const parts = [];
         if (message) parts.push({ text: message });
 
         if (imageFile) {
@@ -107,9 +118,7 @@ router.post('/chat', upload.fields([{ name: 'image', maxCount: 1 }, { name: 'aud
         }
 
         if (audioFile) {
-            console.log("Analyzing attached audio...");
-            // Expo default 'm4a' is usually AAC. 
-            // Gemini accepts 'audio/aac'.
+            console.log(`[Chat] Attaching audio data: ${audioFile.path} (${audioFile.size} bytes)`);
             parts.push({
                 inlineData: {
                     data: fs.readFileSync(audioFile.path).toString("base64"),
@@ -124,32 +133,62 @@ router.post('/chat', upload.fields([{ name: 'image', maxCount: 1 }, { name: 'aud
         // For now, we rely on the client sending the mock text message
 
         try {
-            console.log("Calling Gemini API with multimodal input...");
+            console.log("Calling Gemini API...");
             const startTime = Date.now();
 
-            // Use the constructed parts array which contains text, image, and/or audio
             const result = await chatSession.sendMessage(parts);
             const response = await result.response;
             const rawText = response.text();
 
-            console.log(`[Gemini] Raw Response: ${rawText}`);
-
-            let parsed;
-            try {
-                // Remove Markdown code blocks if model includes them
-                const cleanJson = rawText.replace(/```json|```/g, "").trim();
-                parsed = JSON.parse(cleanJson);
-            } catch (e) {
-                console.error("Failed to parse Gemini JSON. Raw:", rawText);
-                parsed = { reply: rawText, assessment: null };
-            }
-
+            console.log(`[Gemini] Raw Response: ${rawText.substring(0, 200)}...`);
             console.log(`[Gemini] Response received in ${Date.now() - startTime}ms`);
 
+            // Robust JSON Extraction
+            let cleanedText = rawText.trim();
+            if (cleanedText.includes('```json')) {
+                cleanedText = cleanedText.split('```json')[1].split('```')[0].trim();
+            } else if (cleanedText.includes('```')) {
+                cleanedText = cleanedText.split('```')[1].split('```')[0].trim();
+            }
+
+            // Handle cases where there's text before the first '{'
+            const firstBrace = cleanedText.indexOf('{');
+            const lastBrace = cleanedText.lastIndexOf('}');
+            if (firstBrace !== -1 && lastBrace !== -1) {
+                cleanedText = cleanedText.substring(firstBrace, lastBrace + 1);
+            }
+
+            const aiResponse = JSON.parse(cleanedText);
+            const risk = aiResponse.assessment?.risk;
+            res.locals.risk = risk; // Persist for cleanup logic
+
+            // Generate public URL if image was uploaded
+            let publicImageUrl = null;
+            if (imageFile) {
+                publicImageUrl = `/uploads/${imageFile.filename}`;
+            }
+
+            // Fetch condition images if Gemini suggested conditions
+            let conditionSuggestions = null;
+            if (aiResponse.suggestedConditions && Array.isArray(aiResponse.suggestedConditions) && aiResponse.suggestedConditions.length > 0) {
+                console.log(`[Chat] Gemini suggested conditions: ${aiResponse.suggestedConditions.join(', ')}`);
+                try {
+                    // Build backend base URL from request for proxy image URLs
+                    const backendBase = `${req.protocol}://${req.get('host')}`;
+                    conditionSuggestions = await fetchConditionImages(aiResponse.suggestedConditions, backendBase);
+                    console.log(`[Chat] Fetched ${conditionSuggestions.length} condition images`);
+                } catch (imgErr) {
+                    console.error('[Chat] Error fetching condition images:', imgErr.message);
+                }
+            }
+
             res.json({
-                reply: parsed.reply || "I'm processing that.",
-                assessment: parsed.assessment,
-                sessionId: sessionId
+                reply: aiResponse.reply || "I'm processing that.",
+                assessment: aiResponse.assessment,
+                publicImageUrl: publicImageUrl,
+                conditionSuggestions: conditionSuggestions,
+                language: aiResponse.language,
+                lastActive: Date.now()
             });
         } catch (geminiError) {
             console.error("[Gemini] API ERROR TYPE:", geminiError.constructor.name);
@@ -174,6 +213,12 @@ router.post('/chat', upload.fields([{ name: 'image', maxCount: 1 }, { name: 'aud
         // Cleanup uploaded files
         if (req.files) {
             Object.values(req.files).flat().forEach(file => {
+                // Keep image if risk is High or Moderate for teleconsult sharing
+                const isHighRisk = res.locals?.risk === 'High' || res.locals?.risk === 'Moderate';
+                if (file.fieldname === 'image' && isHighRisk) {
+                    console.log(`[Persistence] Keeping high-risk image: ${file.path}`);
+                    return;
+                }
                 if (fs.existsSync(file.path)) fs.unlinkSync(file.path);
             });
         }

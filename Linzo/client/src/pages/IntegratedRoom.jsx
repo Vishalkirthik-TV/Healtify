@@ -51,12 +51,18 @@ const IntegratedRoom = () => {
   // Meeting Summary State
   const [isSummaryEnabled, setIsSummaryEnabled] = useState(false);
   const [showTranscripts, setShowTranscripts] = useState(false); // New UI state
+  const [isSTTSupported, setIsSTTSupported] = useState(true);
   const [captions, setCaptions] = useState([]); // {id, text, speaker, timestamp}
   const [isSpeechActive, setIsSpeechActive] = useState(false);
   const speechRecRef = useRef(null);
   const allowSpeechRestartRef = useRef(false);
   const recentTranscriptsRef = useRef([]);
   const userNameRef = useRef('');
+
+  const handleSTTSupportChange = useCallback((supported) => {
+    console.log(`🎤 Speech Recognition support: ${supported}`);
+    setIsSTTSupported(supported);
+  }, []);
 
   // Conflict Resolution: Disable other speech features when summary is enabled
   useEffect(() => {
@@ -168,7 +174,7 @@ const IntegratedRoom = () => {
   useEffect(() => {
     // Fetch user info for avatar
     api.get('/auth/me').then(res => {
-      const userName = res.data?.user?.name || res.data?.name || 'You';
+      const userName = res.data?.user?.name || res.data?.name || 'DermSight Patient';
       setUser({
         name: userName,
         avatar: res.data?.user?.avatar || res.data?.avatar || '',
@@ -180,7 +186,16 @@ const IntegratedRoom = () => {
       api.post(`/meetings/${roomId}/join`, { username: userName })
         .then(() => console.log('✅ [SUMMARY] Meeting registered in DB'))
         .catch(e => console.error('❌ [SUMMARY] Failed to register meeting:', e));
-    }).catch(() => { });
+    }).catch(() => {
+      // Guest Fallback for DermSight patients
+      const guestName = 'DermSight Patient';
+      setUser({ name: guestName, avatar: '' });
+      userNameRef.current = guestName;
+
+      api.post(`/meetings/${roomId}/join`, { username: guestName })
+        .then(() => console.log('✅ [GUEST] Registered as guest in meeting'))
+        .catch(e => console.error('❌ [GUEST] Failed to register guest:', e));
+    });
 
     // Fetch supported languages for translation
     api.get('/translate/supported-languages').then(res => {
@@ -1175,16 +1190,21 @@ const IntegratedRoom = () => {
   };
 
   // Pre-load voices
+  // Pre-load voices - Safety check added for WebView
   useEffect(() => {
-    const loadVoices = () => {
-      const voices = window.speechSynthesis.getVoices();
-      if (voices.length > 0) {
-        console.log('🎤 Voices loaded:', voices.length);
-      }
-    };
-    loadVoices();
-    window.speechSynthesis.onvoiceschanged = loadVoices;
-    return () => { window.speechSynthesis.onvoiceschanged = null; };
+    if (typeof window !== 'undefined' && window.speechSynthesis) {
+      const loadVoices = () => {
+        const voices = window.speechSynthesis.getVoices();
+        if (voices.length > 0) {
+          console.log('🎤 Voices loaded:', voices.length);
+        }
+      };
+      loadVoices();
+      window.speechSynthesis.onvoiceschanged = loadVoices;
+      return () => { window.speechSynthesis.onvoiceschanged = null; };
+    } else {
+      console.log('⚠️ Speech Synthesis not supported in this environment');
+    }
   }, []);
 
   // Removed corrupted manual STT & duplicate testConnection logic.
@@ -1547,6 +1567,66 @@ const IntegratedRoom = () => {
                   console.log('🚀 Joining room with initial webcam stream:', roomId);
                   socketRef.current.emit('join-room', roomId);
                   hasJoinedRef.current = true;
+
+                  // Share Triage Data if present in URL
+                  const summary = searchParams.get('summary');
+                  const triageImage = searchParams.get('image');
+                  const historyParam = searchParams.get('history');
+
+                  if (summary || triageImage) {
+                    console.log('🏥 [TRIAGE] Auto-sharing triage context to meeting...');
+                    let triageMsg = `🏥 **DermSight Triage Summary**:\n${summary || 'No summary provided.'}`;
+                    if (triageImage) {
+                      triageMsg += `\n\n🖼️ **Reference Image**: ${triageImage}`;
+                    }
+                    setTimeout(() => {
+                      // Add locally so sender sees it
+                      setChatMessages(prev => [...prev, {
+                        id: Date.now(),
+                        text: triageMsg,
+                        sender: 'DermSight AI',
+                        timestamp: new Date().toLocaleTimeString()
+                      }]);
+                      // Broadcast to others
+                      socketRef.current.emit('chat-message', {
+                        roomId,
+                        message: triageMsg,
+                        sender: 'DermSight AI'
+                      });
+                    }, 2000);
+                  }
+
+                  if (historyParam) {
+                    try {
+                      const history = JSON.parse(decodeURIComponent(historyParam));
+                      if (Array.isArray(history) && history.length > 0) {
+                        console.log('💬 [TRIAGE] Auto-sharing full chat history (' + history.length + ' messages)...');
+                        history.forEach((msg, index) => {
+                          const isUser = msg.role === 'user';
+                          const msgText = msg.text;
+                          const senderName = isUser ? 'Patient' : 'DermSight AI';
+                          setTimeout(() => {
+                            const chatMsg = {
+                              id: Date.now() + index,
+                              text: `**${senderName}**: ${msgText}`,
+                              sender: senderName,
+                              timestamp: new Date().toLocaleTimeString()
+                            };
+                            // Add locally
+                            setChatMessages(prev => [...prev, chatMsg]);
+                            // Broadcast to others
+                            socketRef.current.emit('chat-message', {
+                              roomId,
+                              message: chatMsg.text,
+                              sender: senderName
+                            });
+                          }, 2500 + (index * 300));
+                        });
+                      }
+                    } catch (e) {
+                      console.error("Failed to parse history", e);
+                    }
+                  }
                 }
               };
               if (socketRef.current?.connected) {
@@ -1872,14 +1952,41 @@ const IntegratedRoom = () => {
       {/* Persistent Native Speech Recognition - Now hidden but active */}
       {/* Persistent Native Speech Recognition - Controlled by Toggle or Summary */}
       {(isBackgroundListening || isSummaryEnabled) && (
-        <div className="fixed bottom-4 right-4 z-40 opacity-0 pointer-events-none w-1 h-1 overflow-hidden">
-          <NativeSpeechRecognition
-            onTextChange={handleTextChange}
-            onFinalResult={handleFinalSpeech}
-            onListeningChange={handleListeningChange}
-            language={preferredLanguageRef.current || 'en-US'}
-          />
-        </div>
+        <>
+          <div className="fixed bottom-4 right-4 z-40 opacity-0 pointer-events-none w-1 h-1 overflow-hidden">
+            <NativeSpeechRecognition
+              onTextChange={handleTextChange}
+              onFinalResult={handleFinalSpeech}
+              onListeningChange={handleListeningChange}
+              onSupportChange={handleSTTSupportChange}
+              language={preferredLanguageRef.current || 'en-US'}
+            />
+          </div>
+
+          {/* Support Warning Banner for WebViews/Browsers without Web Speech API */}
+          {!isSTTSupported && (
+            <div className="fixed top-20 left-1/2 -translate-x-1/2 z-[100] w-[90%] max-w-md bg-amber-50 border border-amber-200 rounded-xl p-4 shadow-xl animate-in fade-in slide-in-from-top-4 duration-500">
+              <div className="flex gap-3">
+                <div className="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center shrink-0">
+                  <span className="text-xl">⚠️</span>
+                </div>
+                <div className="flex-1">
+                  <h4 className="text-sm font-bold text-amber-900 mb-1">Voice Translation Limited</h4>
+                  <p className="text-xs text-amber-800 leading-relaxed">
+                    Your current browser or WebView doesn't support the Web Speech API required for "Voice to Sign".
+                    <strong> Try using Google Chrome or a modern mobile browser</strong> for the best experience.
+                  </p>
+                  <button
+                    onClick={() => setIsSTTSupported(true)} // Allow dismissing for this session
+                    className="mt-3 text-[10px] font-bold uppercase tracking-wider text-amber-900 hover:text-amber-700 underline"
+                  >
+                    Dismiss for now
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+        </>
       )}
 
       {/* Global Notifications / Chat Overlay */}
