@@ -30,6 +30,7 @@ const SignLanguageAvatar = ({
   const cameraRef = useRef(null);
   const avatarRef = useRef(null);
   const animationRef = useRef(null);
+  const animationTimeoutRef = useRef(null);
 
   const [isAnimating, setIsAnimating] = useState(false);
   const [currentText, setCurrentText] = useState('');
@@ -522,19 +523,27 @@ const SignLanguageAvatar = ({
       console.log('🔄 Animation loop already running, animations queued');
     }
 
+    // Track the timeout to avoid race conditions with multiple rapid updates
+    if (animationTimeoutRef.current) {
+      clearTimeout(animationTimeoutRef.current);
+    }
+
     // Calculate proper animation duration based on animation system
     const animationCount = animSystem.animations.length;
-    const totalDuration = (animationCount * animSystem.pause) + (animationCount * 1000); // pause + animation time
+    // Base time per step (pause + approx motion time)
+    const timePerStep = animSystem.pause + (1.0 / animSystem.speed) * 16.67;
+    const totalDuration = animationCount * timePerStep;
 
-    console.log(`⏱️ Estimated animation duration: ${(totalDuration / 1000).toFixed(1)}s`);
+    console.log(`⏱️ Estimated animation duration: ${(totalDuration / 1000).toFixed(1)}s for ${animationCount} steps`);
 
-    setTimeout(() => {
+    animationTimeoutRef.current = setTimeout(() => {
       setIsAnimating(false);
+      animationTimeoutRef.current = null;
       console.log(`✅ Animation complete for: "${inputText}"`);
       if (onAnimationComplete) {
         onAnimationComplete();
       }
-    }, totalDuration);
+    }, totalDuration + 200); // 200ms buffer
   };
 
   // Fallback interface when 3D model fails to load

@@ -4,6 +4,7 @@ const NativeSpeechRecognition = ({
   onTextChange,
   onListeningChange,
   onFinalResult,
+  onSupportChange,
   language = 'en-US'
 }) => {
   const [isListening, setIsListening] = useState(false);
@@ -22,13 +23,15 @@ const NativeSpeechRecognition = ({
   const onTextChangeRef = useRef(onTextChange);
   const onListeningChangeRef = useRef(onListeningChange);
   const onFinalResultRef = useRef(onFinalResult);
+  const onSupportChangeRef = useRef(onSupportChange);
 
   // Update refs when props change
   useEffect(() => {
     onTextChangeRef.current = onTextChange;
     onListeningChangeRef.current = onListeningChange;
     onFinalResultRef.current = onFinalResult;
-  }, [onTextChange, onListeningChange, onFinalResult]);
+    onSupportChangeRef.current = onSupportChange;
+  }, [onTextChange, onListeningChange, onFinalResult, onSupportChange]);
 
   useEffect(() => {
     // Check if speech recognition is supported
@@ -36,6 +39,7 @@ const NativeSpeechRecognition = ({
 
     if (SpeechRecognition) {
       setIsSupported(true);
+      if (onSupportChangeRef.current) onSupportChangeRef.current(true);
       setDebugInfo('Speech recognition is supported');
 
       try {

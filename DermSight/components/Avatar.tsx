@@ -19,7 +19,7 @@ export default function Avatar({ currentMessage, isListening }: AvatarProps) {
     // URL to the hosted Agentic Companion (or a local dev server IP)
     // For this demo, we can point to a placeholder or a specific RPM viewer
     // Ideally, this should point to the hosted version of the user's Agentic Companion
-    const AVATAR_URL = 'http://192.168.60.170:3001/webview'; // Local Agentic Avatar
+    const AVATAR_URL = 'http://192.168.137.1:3001/webview'; // Local Agentic Avatar
 
     useEffect(() => {
         if (currentMessage) {

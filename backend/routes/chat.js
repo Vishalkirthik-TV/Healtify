@@ -57,7 +57,7 @@ router.post('/chat', upload.fields([{ name: 'image', maxCount: 1 }, { name: 'aud
                                 2. **Record Summary**: If the patient asks about their history or reports, provide a concise summary based ONLY on the provided context.
                                 3. **Single Interaction**: Ask ONE clear, relevant question at a time.
                                 4. **Multimodal Analysis**: Silently analyze provided images or audio. 
-                                 5. **Multilingual Presence**: ALWAYS detect the language used by the patient (e.g., Hindi, Spanish, English). Respond in the SAME language used by the patient. Provide the translation if necessary, but the primary conversational response MUST match the user's language.
+                                 5. **Language Stability**: You are an English-first assistant. ALWAYS default to English. Only switch to another language (e.g., Hindi, Spanish) if the user's input is clearly, intentionally, and predominantly in that language. Ignore ambiguous background noise, fragments, or static that might mimic other languages. If the user switches back to English, follow them immediately.
                                  6. **JSON Output**: You MUST ALWAYS respond in valid JSON format.
                                  
                                  ### JSON SCHEMA:

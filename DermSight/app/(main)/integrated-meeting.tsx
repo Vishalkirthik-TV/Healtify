@@ -4,16 +4,27 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Screen } from '../../components/Screen';
 import { TouchableOpacity, Text } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { Audio } from 'expo-av';
+import { useEffect, useState } from 'react';
 
 export default function IntegratedMeeting() {
     const { roomId, summary, imageURL, history } = useLocalSearchParams();
     const router = useRouter();
+    const [hasPermission, setHasPermission] = useState<boolean | null>(null);
 
     // Base Linzo URL - This must point to the FRONTEND (React App) tunnel
-    // Frontend (5173) -> https://lancaster-mai-mold-election.trycloudflare.com
-    const LINZO_BASE_URL = "https://lancaster-mai-mold-election.trycloudflare.com";
+    const LINZO_BASE_URL = "https://affecting-par-syndrome-summit.trycloudflare.com";
 
     const meetingUrl = `${LINZO_BASE_URL}/integrated-room/${roomId}?summary=${encodeURIComponent(summary as string)}&image=${encodeURIComponent(imageURL as string)}&history=${encodeURIComponent(history as string)}`;
+
+    useEffect(() => {
+        (async () => {
+            console.log('[Permission] Requesting microphone access...');
+            const { status } = await Audio.requestPermissionsAsync();
+            console.log('[Permission] Microphone status:', status);
+            setHasPermission(status === 'granted');
+        })();
+    }, []);
 
     return (
         <Screen style={{ backgroundColor: '#1e293b' }}>
@@ -64,7 +75,6 @@ export default function IntegratedMeeting() {
                 allowsInlineMediaPlayback={true}
                 javaScriptEnabled={true}
                 domStorageEnabled={true}
-                databaseEnabled={true}
                 originWhitelist={['*']}
                 allowsFullscreenVideo={true}
                 scalesPageToFit={true}

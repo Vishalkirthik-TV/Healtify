@@ -68,18 +68,16 @@ export default function AvatarTriage() {
     const speak = (text: string, language: string = 'en') => {
         setAiStatus("Speaking...");
         setIsSpeaking(true);
-        setCaptionText(text);
+        // Captions removed for a cleaner UI
         Speech.speak(text, {
             language: language,
             onDone: () => {
                 setIsSpeaking(false);
-                setAiStatus("Ready"); // Changed from "Listening..." to "Ready" as it's not always listening after speaking
-                setCaptionText(null);
+                setAiStatus("Ready");
             },
             onError: () => {
                 setIsSpeaking(false);
                 setAiStatus("Error speaking");
-                setCaptionText(null);
             }
         });
     };
@@ -423,7 +421,7 @@ export default function AvatarTriage() {
 
                     {/* Risk Assessment UI & Escalation */}
                     {riskAssessment && (
-                        <View className="absolute bottom-40 left-6 right-6">
+                        <View className="absolute bottom-52 left-6 right-6 z-50">
                             <View className="bg-white/95 w-full p-5 rounded-3xl border border-slate-100 shadow-2xl space-y-4">
                                 <View className="flex-row items-center justify-between">
                                     <View className="flex-row items-center space-x-2">
@@ -512,7 +510,7 @@ export default function AvatarTriage() {
 
                     {/* Condition Suggestion Cards */}
                     {conditionSuggestions && conditionSuggestions.length > 0 && (
-                        <View className="absolute bottom-44 left-0 right-0 z-50 px-4">
+                        <View className="absolute bottom-56 left-0 right-0 z-[60] px-4">
                             <View className="bg-white rounded-2xl px-4 py-4 border border-slate-100 shadow-2xl">
                                 <Text className="text-slate-800 text-sm font-bold mb-3 text-center">
                                     Tap the condition that looks closest:
@@ -603,23 +601,26 @@ export default function AvatarTriage() {
                     </View>
 
                     {/* Clinical Guidance Glass Card (Pixel Perfect Refinement) */}
-                    <View className="absolute bottom-48 left-6 right-6 overflow-hidden rounded-[32px] border border-white/20 bg-black/10 backdrop-blur-3xl shadow-2xl z-40">
-                        <View className="px-8 py-7 items-center">
-                            <Text className="text-white/60 text-[11px] font-bold uppercase tracking-[3px] mb-4 text-center">
-                                {isListening ? "Listening..." : "Clinical Assistant"}
-                            </Text>
-                            <Text className="text-white text-[22px] font-bold text-center leading-8 mb-5">
-                                {captionText || "How can I help? Describe your symptoms clearly."}
-                            </Text>
-                            {!captionText && !isListening && (
-                                <View className="px-4 py-1.5 rounded-full border border-white/20 bg-white/5">
-                                    <Text className="text-white/40 text-[10px] font-extrabold uppercase tracking-[2px]">
-                                        Point camera at affected area
-                                    </Text>
-                                </View>
-                            )}
+                    {/* Only show guidance when NO results or suggestions are active */}
+                    {!riskAssessment && !conditionSuggestions && (
+                        <View className="absolute bottom-52 left-6 right-6 overflow-hidden rounded-[32px] border border-white/20 bg-black/10 backdrop-blur-3xl shadow-2xl z-40">
+                            <View className="px-8 py-7 items-center">
+                                <Text className="text-white/60 text-[10px] font-bold uppercase tracking-[2px] mb-3 text-center">
+                                    {isListening ? "Listening..." : "Clinical Assistant"}
+                                </Text>
+                                <Text className="text-white text-[20px] font-bold text-center leading-7 mb-4">
+                                    {"How can I help? Describe your symptoms clearly."}
+                                </Text>
+                                {!isSpeaking && !isListening && (
+                                    <View className="px-4 py-1.5 rounded-full border border-white/20 bg-white/5">
+                                        <Text className="text-white/40 text-[9px] font-extrabold uppercase tracking-[2px]">
+                                            Point camera at affected area
+                                        </Text>
+                                    </View>
+                                )}
+                            </View>
                         </View>
-                    </View>
+                    )}
 
                     {/* Body Selector Modal */}
                     <BodySelectorModal

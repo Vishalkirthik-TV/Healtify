@@ -48,8 +48,8 @@ export function EmergencyModal({ visible, onClose }: EmergencyModalProps) {
 
         try {
             // Android Emulator uses 10.0.2.2 to access host localhost
-            // For physical device, change '192.168.60.170' to your machine's LAN IP
-            const API_URL = Platform.OS === 'android' ? 'http://192.168.60.170:5000' : 'http://localhost:5000';
+            // For physical device, change '192.168.137.1' to your machine's LAN IP
+            const API_URL = Platform.OS === 'android' ? 'http://192.168.137.1:5000' : 'http://localhost:5000';
 
             // 1. Send SMS (Existing Logic)
             await fetch(`${API_URL}/api/emergency/alert`, {

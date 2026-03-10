@@ -51,12 +51,18 @@ const IntegratedRoom = () => {
   // Meeting Summary State
   const [isSummaryEnabled, setIsSummaryEnabled] = useState(false);
   const [showTranscripts, setShowTranscripts] = useState(false); // New UI state
+  const [isSTTSupported, setIsSTTSupported] = useState(true);
   const [captions, setCaptions] = useState([]); // {id, text, speaker, timestamp}
   const [isSpeechActive, setIsSpeechActive] = useState(false);
   const speechRecRef = useRef(null);
   const allowSpeechRestartRef = useRef(false);
   const recentTranscriptsRef = useRef([]);
   const userNameRef = useRef('');
+
+  const handleSTTSupportChange = useCallback((supported) => {
+    console.log(`🎤 Speech Recognition support: ${supported}`);
+    setIsSTTSupported(supported);
+  }, []);
 
   // Conflict Resolution: Disable other speech features when summary is enabled
   useEffect(() => {
@@ -1946,14 +1952,41 @@ const IntegratedRoom = () => {
       {/* Persistent Native Speech Recognition - Now hidden but active */}
       {/* Persistent Native Speech Recognition - Controlled by Toggle or Summary */}
       {(isBackgroundListening || isSummaryEnabled) && (
-        <div className="fixed bottom-4 right-4 z-40 opacity-0 pointer-events-none w-1 h-1 overflow-hidden">
-          <NativeSpeechRecognition
-            onTextChange={handleTextChange}
-            onFinalResult={handleFinalSpeech}
-            onListeningChange={handleListeningChange}
-            language={preferredLanguageRef.current || 'en-US'}
-          />
-        </div>
+        <>
+          <div className="fixed bottom-4 right-4 z-40 opacity-0 pointer-events-none w-1 h-1 overflow-hidden">
+            <NativeSpeechRecognition
+              onTextChange={handleTextChange}
+              onFinalResult={handleFinalSpeech}
+              onListeningChange={handleListeningChange}
+              onSupportChange={handleSTTSupportChange}
+              language={preferredLanguageRef.current || 'en-US'}
+            />
+          </div>
+
+          {/* Support Warning Banner for WebViews/Browsers without Web Speech API */}
+          {!isSTTSupported && (
+            <div className="fixed top-20 left-1/2 -translate-x-1/2 z-[100] w-[90%] max-w-md bg-amber-50 border border-amber-200 rounded-xl p-4 shadow-xl animate-in fade-in slide-in-from-top-4 duration-500">
+              <div className="flex gap-3">
+                <div className="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center shrink-0">
+                  <span className="text-xl">⚠️</span>
+                </div>
+                <div className="flex-1">
+                  <h4 className="text-sm font-bold text-amber-900 mb-1">Voice Translation Limited</h4>
+                  <p className="text-xs text-amber-800 leading-relaxed">
+                    Your current browser or WebView doesn't support the Web Speech API required for "Voice to Sign".
+                    <strong> Try using Google Chrome or a modern mobile browser</strong> for the best experience.
+                  </p>
+                  <button
+                    onClick={() => setIsSTTSupported(true)} // Allow dismissing for this session
+                    className="mt-3 text-[10px] font-bold uppercase tracking-wider text-amber-900 hover:text-amber-700 underline"
+                  >
+                    Dismiss for now
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+        </>
       )}
 
       {/* Global Notifications / Chat Overlay */}
