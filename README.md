@@ -8,6 +8,50 @@ Unlike traditional symptom checkers, DermSight verifies whether patient-reported
 
 ---
 
+## 🏃 How to Run the Application
+
+The application consists of a **React Native (Expo)** frontend (`DermSight`) and a **Node.js/Express** backend (`backend`). 
+
+### 1. Start the Backend Server
+The backend handles API requests, database connections, and AI integrations (Gemini, Twilio).
+
+1. Open a new terminal and navigate to the backend directory:
+   ```bash
+   cd backend
+   ```
+2. Install the necessary dependencies:
+   ```bash
+   npm install
+   ```
+3. Ensure your environment variables are configured in the `.env` file (e.g., MongoDB URI, Gemini API Key, Twilio credentials).
+4. Run the server using nodemon for automatic reloading:
+   ```bash
+   npx nodemon server.js
+   ```
+
+### 2. Start the Frontend (Mobile App)
+The frontend is built with React Native and Expo Router.
+
+1. Open a second terminal and navigate to the frontend directory:
+   ```bash
+   cd DermSight
+   ```
+2. Install the frontend dependencies:
+   ```bash
+   npm install
+   ```
+3. Start the Expo development server:
+   ```bash
+   npm start
+   ```
+
+### 3. Viewing the App
+Once the Expo development server is running, it will display a QR code globally in the terminal.
+- **Physical Device:** Download the **Expo Go** app on your iOS or Android device and scan the QR code. Ensure your device is on the same local network (Wi-Fi) as your PC.
+- **Emulator:** Press `a` in the terminal to open the app via an installed Android emulator, or `i` for an iOS simulator.
+
+---
+
 ## 🚀 Key Features
 
 ### 📷 Guided Multimodal Symptom Capture
